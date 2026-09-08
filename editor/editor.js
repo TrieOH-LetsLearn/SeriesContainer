@@ -25,6 +25,89 @@ const slugify = (s) =>
 
 const pad = (n) => String(n ?? 0).padStart(2, '0');
 
+// Markdown helpers toolbar for the chapter content editor: each button
+// inserts a snippet at the caret (wrapping the selection when there is one).
+const MD_TOOLBAR = [
+	{ group: 'text', items: [
+		{ md: 'h2', label: 'H2', title: 'Level-2 heading' },
+		{ md: 'h3', label: 'H3', title: 'Level-3 heading' },
+		{ md: 'bold', label: 'B', title: 'Bold' },
+		{ md: 'italic', label: 'I', title: 'Italic' },
+		{ md: 'code', label: 'code', title: 'Inline code' },
+		{ md: 'link', label: 'link', title: 'Link' },
+	]},
+	{ group: 'blocks', items: [
+		{ md: 'ul', label: '• list', title: 'Bullet list' },
+		{ md: 'ol', label: '1. list', title: 'Numbered list' },
+		{ md: 'quote', label: 'quote', title: 'Blockquote' },
+		{ md: 'hr', label: '——', title: 'Horizontal rule' },
+	]},
+	{ group: 'code', items: [
+		{ md: 'codeblock', label: '``` code', title: 'Fenced code block' },
+		{ md: 'keep', label: 'Code (visible)', title: 'A code block that always stays visible — use “keep” for example code that would otherwise be treated as the reference' },
+		{ md: 'reveal', label: 'Reference answer', title: 'The final solution — hidden behind the “Reference code” toggle; readers try it first' },
+	]},
+];
+
+function mdToolbarHtml() {
+	return `<div class="md-toolbar" role="toolbar" aria-label="Insert markdown">` +
+		MD_TOOLBAR.map(
+			(g) =>
+				g.items
+					.map(
+						(b) =>
+							`<button type="button" data-md="${b.md}" title="${esc(b.title)}">${esc(b.label)}</button>`,
+					)
+					.join('<span class="sep"></span>'),
+		).join('<span class="sep"></span>') +
+		`</div>`;
+}
+
+const MD_SNIPPETS = {
+	h2: { block: true, before: '## ', placeholder: 'Heading' },
+	h3: { block: true, before: '### ', placeholder: 'Heading' },
+	bold: { before: '**', after: '**', placeholder: 'bold text' },
+	italic: { before: '*', after: '*', placeholder: 'emphasised text' },
+	code: { before: '`', after: '`', placeholder: 'inline code' },
+	link: { before: '[', after: '](https://)', placeholder: 'link text' },
+	ul: { block: true, before: '- ', placeholder: 'first item' },
+	ol: { block: true, before: '1. ', placeholder: 'first step' },
+	quote: { block: true, before: '> ', placeholder: 'quoted text' },
+	hr: { block: true, before: '---', placeholder: '' },
+	codeblock: { block: true, before: '```py\n', after: '\n```', placeholder: 'your code here' },
+	keep: { block: true, before: '```py keep\n', after: '\n```', placeholder: 'your code here' },
+	reveal: { block: true, before: '```py reveal\n', after: '\n```', placeholder: 'your reference answer here' },
+};
+
+/** Insert a snippet at the caret of the #f-body textarea, selecting the placeholder. */
+function mdInsert(key) {
+	const ta = document.querySelector('#f-body');
+	if (!ta) return;
+	const def = MD_SNIPPETS[key];
+	if (!def) return;
+	const { selectionStart: start, selectionEnd: end, value: value } = ta;
+	const selected = value.slice(start, end);
+	const inner = selected || def.placeholder;
+
+	const needsOwnLine = def.block && start > 0 && value[start - 1] !== '\n';
+	const pre = (def.block && needsOwnLine ? '\n' : '') + def.before;
+	const post = (def.after ?? '') + (def.block ? '\n' : '');
+	const text = pre + inner + post;
+	const newValue = value.slice(0, start) + text + value.slice(end);
+
+	ta.value = newValue;
+	const caretBase = start + pre.length;
+	if (selected) {
+		ta.setSelectionRange(caretBase + inner.length, caretBase + inner.length);
+	} else if (inner) {
+		ta.setSelectionRange(caretBase, caretBase + inner.length); // select the placeholder
+	} else {
+		ta.setSelectionRange(caretBase, caretBase);
+	}
+	ta.focus();
+	ta.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 const BOOK_STATUS = {
 	'not-started': 'Not started',
 	'in-progress': 'In progress',
@@ -570,6 +653,7 @@ function renderChapterForm(pane) {
 		</div>
 		<div class="field">
 			<label for="f-body">Lesson content <span class="hint">(markdown — write the chapter here)</span></label>
+			${mdToolbarHtml()}
 			<textarea id="f-body" class="body--tall" placeholder="Explain the mechanism in plain markdown. The last code block is the reference answer and renders behind a CodeReveal toggle."></textarea>
 			<p class="form-note">Markdown is fine: ## headings, lists, bold, and fenced code blocks. The right pane shows the real page after you save.</p>
 		</div>
@@ -876,6 +960,11 @@ $('#tree').addEventListener('click', (ev) => {
 });
 
 $('#form-pane').addEventListener('click', (ev) => {
+	const mdBtn = ev.target.closest('[data-md]');
+	if (mdBtn) {
+		mdInsert(mdBtn.dataset.md);
+		return;
+	}
 	const btn = ev.target.closest('[data-action]');
 	if (!btn) return;
 	const action = btn.dataset.action;

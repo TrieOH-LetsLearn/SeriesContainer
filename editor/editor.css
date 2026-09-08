@@ -668,3 +668,67 @@ textarea {
 	margin: 0.25rem 0 0;
 	line-height: 1.5;
 }
+
+/* ---------------- chapter content markdown toolbar ---------------- */
+
+.md-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem;
+	margin: 0 0 0.45rem;
+	padding: 0.35rem;
+	background: var(--bg-raised);
+	border: 1px solid var(--border-soft);
+	border-radius: 8px;
+}
+
+.md-toolbar__label {
+	font-size: 0.68rem;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	color: var(--text-faint);
+	margin-right: 0.25rem;
+}
+
+.md-toolbar button {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	color: var(--text-muted);
+	border-radius: 6px;
+	font-size: 0.76rem;
+	font-family: var(--font-sans);
+	padding: 0.2rem 0.5rem;
+	cursor: pointer;
+	white-space: nowrap;
+	transition:
+		border-color 0.12s ease,
+		color 0.12s ease,
+		background 0.12s ease;
+}
+
+.md-toolbar button:hover {
+	border-color: var(--accent);
+	color: var(--text);
+	background: var(--surface-hover);
+}
+
+.md-toolbar .sep {
+	width: 1px;
+	height: 1.1em;
+	background: var(--border);
+	margin: 0 0.2rem;
+	flex: 0 0 auto;
+}
+
+.md-toolbar button[data-md='reveal'] {
+	border-style: dashed;
+}
+
+.md-toolbar button[data-md='reveal']::before {
+	content: '🔒 ';
+}
+
+.md-toolbar button[data-md='keep']::before {
+	content: '👁 ';
+}
