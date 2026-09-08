@@ -688,15 +688,17 @@ async function save() {
 
 	const title = $('#f-title')?.value?.trim() ?? '';
 	const slug = $('#f-slug')?.value?.trim().toLowerCase() ?? '';
-	const orderRaw = $('#f-order')?.value;
-	const order = Number.parseInt(orderRaw, 10);
+	// Order only exists on series/book/chapter forms (not the hub).
+	const needsOrder = e.kind !== 'hub';
+	const orderEl = needsOrder ? $('#f-order') : null;
+	const order = orderEl ? Number.parseInt(orderEl.value, 10) : 0;
 	const body = $('#f-body')?.value ?? '';
 	const slugRe = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 	const problems = [];
 	if (!title) problems.push('Title is required.');
+	if (needsOrder && Number.isNaN(order)) problems.push('Order must be a number.');
 	if (['project', 'book', 'chapter'].includes(e.kind) && !slugRe.test(slug))
 		problems.push('Slug must be lowercase letters, numbers and single hyphens.');
-	if (Number.isNaN(order)) problems.push('Order must be a number.');
 	if (problems.length) {
 		problems.forEach((p) => toast(p, 'err'));
 		return;
