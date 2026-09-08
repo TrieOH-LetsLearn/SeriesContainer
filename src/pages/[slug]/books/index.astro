@@ -1,10 +1,18 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import BookCard from '../../../components/BookCard.astro';
-import { getBooksOf, getHub, getProjects, getProject, seriesRoot } from '../../../lib/platform';
+import {
+	getBooksOf,
+	getHub,
+	getProjects,
+	getProject,
+	getVisibleProjects,
+	siteHref,
+	seriesRoot,
+} from '../../../lib/platform';
 
 export async function getStaticPaths() {
-	const projects = await getProjects();
+	const projects = await getVisibleProjects();
 	return projects.map((p) => ({ params: { slug: p.id } }));
 }
 
@@ -23,7 +31,7 @@ const footer = project?.data.footer ?? `${hub?.data.title ?? 'Lets Learn'}, a se
 	brand={title}
 	brandHref={root}
 	footerText={footer}
-	footerLinks={[{ label: project?.data.backLabel ?? 'All series', href: '/' }]}
+	footerLinks={[{ label: project?.data.backLabel ?? 'All series', href: siteHref('/') }]}
 	nav={[
 		{ label: 'Home', href: root, exact: true },
 		{ label: 'Books', href: `${root}/books`, exact: true },
@@ -44,6 +52,6 @@ const footer = project?.data.footer ?? `${hub?.data.title ?? 'Lets Learn'}, a se
 	</p>
 
 	<section class="books-grid" aria-label="All books">
-		{books.map((book) => <BookCard root={root} book={book} />)}
+		{books.map((book) => <BookCard slug={slug} book={book} />)}
 	</section>
 </Base>

@@ -1,5 +1,5 @@
 ---
-import { PROJECT_STATUS_LABEL, type Project } from '../lib/platform';
+import { PROJECT_STATUS_LABEL, siteHref, type Project } from '../lib/platform';
 
 interface Props {
 	project: Project;
@@ -7,7 +7,11 @@ interface Props {
 
 const { project } = Astro.props;
 const d = project.data;
-const live = d.status === 'live' && !!d.url;
+// Live series link to their deploy URL when one is set; otherwise they live
+// inside this same build at /learn/<slug>/ and link there.
+const external = d.status === 'live' && !!d.url;
+const cardHref = external ? d.url : siteHref(`/${project.id}/`);
+const clickable = d.status === 'live';
 ---
 
 <article class="project-card">
@@ -16,12 +20,21 @@ const live = d.status === 'live' && !!d.url;
 		<span class={`status status--${d.status}`}>{PROJECT_STATUS_LABEL[d.status]}</span>
 	</div>
 	<h2 class="project-card__title">
-		{live ? <a href={d.url}>{d.title}</a> : d.title}
+		{clickable ? <a href={cardHref}>{d.title}</a> : d.title}
 	</h2>
 	{d.tagline && <p class="project-card__tagline">{d.tagline}</p>}
 	{ d.description && <p class="project-card__desc">{d.description}</p> }
 	<div class="project-card__foot">
-		{live && <a class="btn btn--small project-card__visit" href={d.url}>Visit ↗</a>}
+		{clickable && (
+			<a
+				class="btn btn--small project-card__visit"
+				href={cardHref}
+				target={external ? '_blank' : undefined}
+			rel={external ? 'noreferrer' : undefined}>
+
+				{external ? 'Visit ↗' : 'Open ↗'}
+			</a>
+		)}
 		{
 			d.links.length > 0 && (
 				<span class="project-card__links">

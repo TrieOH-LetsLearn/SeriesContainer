@@ -27,8 +27,23 @@ export const PROJECT_STATUS_LABEL: Record<Project['data']['status'], string> = {
 	archived: 'Archived',
 };
 
+/** The site's base path: '/' locally, '/learn/' in CI builds. */
+const BASE: string = import.meta.env.BASE_URL;
+
+/** Prefix an absolute pathname with the base path. */
+export function siteHref(pathname: string): string {
+	const base = BASE.endsWith('/') ? BASE.slice(0, -1) : BASE;
+	return `${base}${pathname}`;
+}
+
+/** True in /learn production builds: hide draft/archived series pages. */
+export const publicOnly: boolean = import.meta.env.BASE_URL !== '/';
+
+/** The hub home. */
+export const hubRoot = siteHref('/');
+
 /** The series root for a given slug, in this combined site. */
-export const seriesRoot = (slug: string): string => `/${slug}`;
+export const seriesRoot = (slug: string): string => siteHref(`/${slug}`);
 
 const bookKeyOf = (bookId: string): string => bookId.slice(bookId.indexOf('/') + 1);
 
@@ -44,6 +59,11 @@ export async function getHub(): Promise<CollectionEntry<'hub'> | undefined> {
 export async function getProjects(): Promise<Project[]> {
 	const projects = await getCollection('projects');
 	return projects.sort((a, b) => a.data.order - b.data.order || a.id.localeCompare(b.id));
+}
+
+/** Series that generate pages: all of them locally, only public ones in the /learn build. */
+export async function getVisibleProjects(): Promise<Project[]> {
+	return publicOnly ? await getPublicProjects() : await getProjects();
 }
 
 /** Series that the hub's public page lists (live + launching). */

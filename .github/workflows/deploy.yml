@@ -1,0 +1,54 @@
+# Deploys the Lets Learn platform (hub + every series) to Cloudflare Pages,
+# built with base /learn so it serves under https://trieoh.com/learn.
+#
+# Prereqs:
+#   1. A Cloudflare Pages project for this site. Change `--project-name`
+#      below (default: letslearn) if yours is named differently, and make
+#      sure its production branch is `main`.
+#   2. Repo secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID
+#      (same names your other TrieOH workflows use).
+#
+# How a series gets published:
+#   - Content is committed to content/ (via the /editor or by hand).
+#   - Pushing to main rebuilds and redeploys everything under /learn.
+#   - A series whose status is live/launching appears on the hub; the card
+#     links to its own deploy URL when set, otherwise into this same build.
+#   - Draft/archived series stay out of the public build entirely.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build (base /learn)
+        run: ASTRO_BASE=/learn npm run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=letslearn --branch=main

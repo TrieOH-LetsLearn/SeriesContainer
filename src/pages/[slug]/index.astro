@@ -7,11 +7,13 @@ import {
 	getHub,
 	getProjects,
 	getProject,
+	getVisibleProjects,
+	siteHref,
 	seriesRoot,
 } from '../../lib/platform';
 
 export async function getStaticPaths() {
-	const projects = await getProjects();
+	const projects = await getVisibleProjects();
 	return projects.map((p) => ({ params: { slug: p.id } }));
 }
 
@@ -36,9 +38,9 @@ const { Content } = project ? await render(project) : { Content: undefined };
 	title={missing ? 'Not found' : projectTitle}
 	description={project?.data.description}
 	brand={missing ? (hub?.data.title ?? 'Lets Learn') : projectTitle}
-	brandHref={missing ? '/' : root}
+	brandHref={missing ? siteHref('/') : root}
 	footerText={missing ? (hub?.data.footer ?? 'Lets Learn by TrieOH') : projectFooter}
-	footerLinks={missing ? [] : [{ label: backLabel, href: '/' }]}
+	footerLinks={missing ? [] : [{ label: backLabel, href: siteHref('/') }]}
 	nav={
 		missing
 			? []

@@ -13,11 +13,13 @@ import {
 	getHub,
 	getProject,
 	getProjects,
+	getVisibleProjects,
 	seriesRoot,
+	siteHref,
 } from '../../../../lib/platform';
 
 export async function getStaticPaths() {
-	const projects = await getProjects();
+	const projects = await getVisibleProjects();
 	const out = [];
 	for (const p of projects) {
 		const books = await getBooksOf(p.id);
@@ -54,10 +56,10 @@ const backLabel = project?.data.backLabel ?? `All ${hub?.data.title ?? 'series'}
 	title={book ? `${book.data.shortTitle} · ${book.data.title}` : 'Not found'}
 	description={project?.data.description}
 	brand={title}
-	brandHref={project ? root : '/'}
+	brandHref={project ? root : siteHref('/')}
 	read
 	footerText={footer}
-	footerLinks={project ? [{ label: backLabel, href: '/' }] : []}
+	footerLinks={project ? [{ label: backLabel, href: siteHref('/') }] : []}
 	nav={
 		project
 			? [
@@ -127,7 +129,7 @@ const backLabel = project?.data.backLabel ?? `All ${hub?.data.title ?? 'series'}
 
 			<nav class="book-nav" aria-label="Book navigation">
 				{prev && (
-					<a href={bookHref(root, prev.id.slice(prev.id.indexOf('/') + 1))}>
+					<a href={bookHref(slug, prev.id.slice(prev.id.indexOf('/') + 1))}>
 						<span class="label">Previous</span>
 						<span class="title">
 							{prev.data.shortTitle}
@@ -139,7 +141,7 @@ const backLabel = project?.data.backLabel ?? `All ${hub?.data.title ?? 'series'}
 				{next && (
 					<a
 						class="next"
-						href={bookHref(root, next.id.slice(next.id.indexOf('/') + 1))}>
+						href={bookHref(slug, next.id.slice(next.id.indexOf('/') + 1))}>
 						<span class="label">Next</span>
 						<span class="title">
 							{next.data.shortTitle}

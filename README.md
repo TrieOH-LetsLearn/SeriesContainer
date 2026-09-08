@@ -39,9 +39,27 @@ In the dev server — and in a combined static build — everything is visible:
 - `/<slug>/books/<book>/` — a book (folder name = URL)
 - `/<slug>/books/<book>/chapters/<NN>-<topic>/` — a chapter
 
-Deployments are separate per series (each series can live at its own URL or
-domain; Cloudflare micro-fronts map paths). The hub links out with absolute
-URLs, so "where is it deployed" is just a field on each series' home.md.
+The whole platform deploys as one micro-front under **trieoh.com/learn**
+(the Astro base is set to `/learn` in CI builds, so every page, book,
+chapter, link and asset is prefix-aware). A series that is hosted
+elsewhere just gets its deploy URL set in the editor — the hub card then
+links there instead of into this build.
+
+## Deploy (CI)
+
+Pushing to `main` runs `.github/workflows/deploy.yml`: `npm ci` →
+`ASTRO_BASE=/learn npm run build` → `wrangler pages deploy` to a Cloudflare
+Pages project (rename `--project-name` in the workflow if yours differs).
+
+Before the first deploy:
+1. Create the Cloudflare Pages project and set its production branch to
+   `main`.
+2. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repo secrets.
+3. Point trieoh.com/learn at the Pages project (custom domain/route).
+
+Only `live` and `launching` series generate pages in the public build;
+`draft`/`archived` stay local-only (previewable in the dev server, never
+deployed).
 
 ## Editorial mode
 

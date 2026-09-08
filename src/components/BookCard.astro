@@ -3,17 +3,17 @@ import type { Book } from '../lib/platform';
 import { BOOK_STATUS_LABEL, bookHref, countChapters } from '../lib/platform';
 
 interface Props {
-	/** Series root URL prefix, e.g. "/ai". */
-	root: string;
+	/** Series slug (the folder in content/projects), e.g. "ai". */
+	slug: string;
 	book: Book;
 }
 
-const { root, book } = Astro.props;
+const { slug, book } = Astro.props;
 const bookKey = book.id.slice(book.id.indexOf('/') + 1);
 const chapterCount = await countChapters(book.id);
 ---
 
-<a class="book-card" href={bookHref(root, bookKey)}>
+<a class="book-card" href={bookHref(slug, bookKey)}>
 	<div class="book-card__top">
 		<span class="book-card__number">{book.data.shortTitle}</span>
 		<span class={`status status--${book.data.status}`}>
