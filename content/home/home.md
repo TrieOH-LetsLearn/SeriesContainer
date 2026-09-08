@@ -1,8 +1,6 @@
 ---
 title: Lets Learn
-tagline: Updated tagline v2.
-description: d
-footer: f
+tagline: Build it, step by step, learn anything!
+description: ""
+footer: ""
 ---
-
-Welcome body v2.

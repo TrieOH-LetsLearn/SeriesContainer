@@ -405,7 +405,7 @@ function renderProjectForm(pane) {
 		</div>
 		<div class="field-row">
 			<div class="field">
-				<label for="f-status">Status <span class="hint">(non-live hides from the public hub)</span></label>
+				<label for="f-status">Status <span class="hint">(controls hub visibility)</span></label>
 				<select id="f-status">
 					${Object.entries(PROJECT_STATUS)
 						.map(
@@ -414,6 +414,7 @@ function renderProjectForm(pane) {
 						)
 						.join('')}
 				</select>
+				<p class="form-note">Draft and archived never show on the hub. Launching shows a “coming soon” card; live (with a deploy URL) links from it.</p>
 			</div>
 			<div class="field">
 				<label for="f-footer">Footer note</label>
@@ -546,8 +547,7 @@ function renderChapterForm(pane) {
 	const f = chapter ?? {};
 	const book = bookOf(e.project, e.bookId);
 	const project = projOf(e.project);
-	const nextOrder =
-		book?.chapters.reduce((m, c) => Math.max(m, c.order), 0) + 1;
+	const nextOrder = book?.chapters.reduce((m, x) => Math.max(m, x.order), 0) + 1;
 
 	pane.innerHTML = `
 		<div class="form-head">
@@ -564,27 +564,28 @@ function renderChapterForm(pane) {
 		<p class="form-meta">
 			Series: <strong>${esc(project?.home.fields.title || e.project)}</strong> · Book: <strong>${esc(book?.title || e.bookId)}</strong>
 		</p>
+		<div class="field">
+			<label for="f-title">Chapter title</label>
+			<input id="f-title" type="text" value="${esc(f.title ?? '')}" data-autoslug="1" placeholder="What a loss function is" />
+		</div>
+		<div class="field">
+			<label for="f-body">Lesson content <span class="hint">(markdown — write the chapter here)</span></label>
+			<textarea id="f-body" class="body--tall" placeholder="Explain the mechanism in plain markdown. The last code block is the reference answer and renders behind a CodeReveal toggle."></textarea>
+			<p class="form-note">Markdown is fine: ## headings, lists, bold, and fenced code blocks. The right pane shows the real page after you save.</p>
+		</div>
 		<div class="field-row">
-			<div class="field">
-				<label for="f-title">Title</label>
-				<input id="f-title" type="text" value="${esc(f.title ?? '')}" data-autoslug="1" placeholder="What a loss function is" />
-			</div>
 			<div class="field">
 				<label for="f-order">Order</label>
 				<input id="f-order" type="number" min="0" step="1" value="${isNew ? nextOrder : f.order}" />
 			</div>
-		</div>
-		<div class="field">
-			<label for="f-slug">Slug <span class="hint">(chapter file: NN-<slug>.md)</span></label>
-			<div class="slug-wrap">
-				<span class="slug-prefix">${pad(isNew ? nextOrder : f.order)}-</span>
-				<input id="f-slug" type="text" value="${esc(isNew ? '' : (e.name || '').replace(/^\d+-/, ''))}" data-role="slug" spellcheck="false" placeholder="what-model-means" />
+			<div class="field">
+				<label for="f-slug">Slug <span class="hint">(NN-<slug>.md)</span></label>
+				<div class="slug-wrap">
+					<span class="slug-prefix">${pad(isNew ? nextOrder : f.order)}-</span>
+					<input id="f-slug" type="text" value="${esc(isNew ? '' : (e.name || '').replace(/^\d+-/, ''))}" data-role="slug" spellcheck="false" placeholder="what-model-means" />
+				</div>
+				<p class="form-note">Changing order or slug renames the file.</p>
 			</div>
-			<p class="form-note">Changing order or slug renames the file. The last code block is auto-hidden behind the CodeReveal toggle.</p>
-		</div>
-		<div class="field">
-			<label for="f-body">Chapter body <span class="hint">(markdown)</span></label>
-			<textarea id="f-body" class="body--tall"></textarea>
 		</div>
 		<div class="form-actions">
 			<button type="button" class="btn btn--primary" data-action="save">${isNew ? 'Create chapter' : 'Save'}</button>
@@ -766,7 +767,18 @@ async function save() {
 
 		await refresh();
 		state.editing = { ...reselect, isNew: false };
-		toast('Saved.', result.resynced ? 'warn' : 'ok');
+		if (e.kind === 'project') {
+			const st = $('#f-status')?.value ?? 'draft';
+			if (st === 'draft' || st === 'archived') {
+				toast(`Saved — status is ${st}, so it's hidden from the hub. Set it to live to publish.`, 'warn', 6500);
+			} else if (st === 'live' && !($('#f-url')?.value ?? '').trim()) {
+				toast('Saved — set a deploy URL so the hub card links somewhere.', 'warn', 6500);
+			} else {
+				toast('Saved.', result.resynced ? 'warn' : 'ok');
+			}
+		} else {
+			toast('Saved.', result.resynced ? 'warn' : 'ok');
+		}
 		if (result.resynced) toast('First file — content re-scanned, pages are live.', 'warn');
 	} catch (err) {
 		toast(err.message, 'err', 7000);
