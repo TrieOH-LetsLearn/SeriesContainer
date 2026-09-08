@@ -1,0 +1,10 @@
+name = "letslearn-edge"
+compatibility_date = "2024-09-23"
+workers_dev = false
+main = "./src/index.mjs"
+
+# Serves the Lets Learn platform (the letslearn Pages project) under
+# https://trieoh.com/learn — one micro-frontend on the trieoh.com zone.
+routes = [
+	{ pattern = "trieoh.com/learn*", zone_id = "6fa6890c8818fbdec24d20546ab06f08" },
+]

@@ -61,6 +61,22 @@ Only `live` and `launching` series generate pages in the public build;
 `draft`/`archived` stay local-only (previewable in the dev server, never
 deployed).
 
+### trieoh.com/learn (the micro-frontend)
+
+Cloudflare Pages serves the built files at the project root, so an `edge/`
+worker maps `trieoh.com/learn*` onto the Pages deployment by stripping the
+`/learn` prefix (the HTML's links/assets are absolute `/learn/…` paths):
+
+```sh
+# static site → Pages project "letslearn"
+wrangler pages deploy dist --project-name=letslearn --branch=main
+# edge worker → trieoh.com/learn route (from edge/)
+wrangler deploy
+```
+
+Both are authenticated with `wrangler login` (OAuth) or
+`CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` env vars.
+
 ## Editorial mode
 
 ```sh
