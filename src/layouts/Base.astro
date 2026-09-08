@@ -1,0 +1,98 @@
+---
+/**
+ * Base layout — shared chrome for every page of the platform (hub or a
+ * series). Everything comes in as props so the same shell serves both.
+ * Pure static on the viewer side; the only link that appears under DEV is
+ * the editorial "Editor" entry, which is compiled out of viewer builds.
+ */
+import '../styles/global.css';
+
+interface NavItem {
+	label: string;
+	href: string;
+	/** True = active only on that exact path; false = prefix match. */
+	exact?: boolean;
+}
+
+interface Props {
+	title: string;
+	description?: string;
+	/** Narrow reading column (book pages). Defaults to wide (home/hub). */
+	read?: boolean;
+	/** Header brand text and where it points. */
+	brand: string;
+	brandHref?: string;
+	nav?: NavItem[];
+	/** Footer brand/note line. */
+	footerText: string;
+	footerLinks?: { label: string; href: string }[];
+}
+
+const {
+	title,
+	description,
+	read,
+	brand,
+	brandHref = '/',
+	nav = [],
+	footerText,
+	footerLinks = [],
+} = Astro.props;
+
+const pathname = Astro.url.pathname.replace(/\/+$/, '') || '/';
+
+function isActive(item: NavItem): boolean {
+	const target = item.href.replace(/\/+$/, '') || '/';
+	return item.exact ? pathname === target : pathname.startsWith(target);
+}
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<title>{title}</title>
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+	</head>
+	<body>
+		<header class="site-header">
+			<div class="site-header__inner">
+				<div class="site-header__title">
+					<a href={brandHref}>{brand}</a>
+				</div>
+				<nav class="site-header__nav" aria-label="Site">
+					{nav.map((item) => (
+						<a href={item.href} aria-current={isActive(item) ? 'page' : undefined}>
+							{item.label}
+						</a>
+					))}
+					{
+						import.meta.env.DEV && (
+							<a
+								href="/editor"
+								aria-current={pathname === '/editor' ? 'page' : undefined}>Editor</a>
+						)
+					}
+				</nav>
+			</div>
+		</header>
+
+		<main class:list={{ read }}>
+			<slot />
+		</main>
+
+		<footer class="site-footer">
+			<div class="site-footer__inner">
+				<div class="site-footer__brand">{footerText}</div>
+				{footerLinks.length > 0 && (
+					<div class="site-footer__links">
+						{footerLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+					</div>
+				)}
+			</div>
+		</footer>
+	</body>
+</html>

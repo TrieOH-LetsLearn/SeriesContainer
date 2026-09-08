@@ -1,0 +1,40 @@
+---
+import { PROJECT_STATUS_LABEL, type Project } from '../lib/platform';
+
+interface Props {
+	project: Project;
+}
+
+const { project } = Astro.props;
+const d = project.data;
+const live = d.status === 'live' && !!d.url;
+---
+
+<article class="project-card">
+	<div class="project-card__top">
+		<span class="project-card__icon" aria-hidden="true">{d.icon || '📚'}</span>
+		<span class={`status status--${d.status}`}>{PROJECT_STATUS_LABEL[d.status]}</span>
+	</div>
+	<h2 class="project-card__title">
+		{live ? <a href={d.url}>{d.title}</a> : d.title}
+	</h2>
+	{d.tagline && <p class="project-card__tagline">{d.tagline}</p>}
+	{ d.description && <p class="project-card__desc">{d.description}</p> }
+	<div class="project-card__foot">
+		{live && <a class="btn btn--small project-card__visit" href={d.url}>Visit ↗</a>}
+		{
+			d.links.length > 0 && (
+				<span class="project-card__links">
+					{d.links.map(
+						(link) =>
+							link.url && (
+								<a href={link.url} target="_blank" rel="noreferrer">
+									{link.label}
+								</a>
+							),
+					)}
+				</span>
+			)
+		}
+	</div>
+</article>

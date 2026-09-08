@@ -1,0 +1,201 @@
+---
+import { render } from 'astro:content';
+import { Dot } from 'lucide-astro';
+import Base from '../../../../../layouts/Base.astro';
+import ChapterNavItem from '../../../../../components/ChapterNavItem.astro';
+import {
+	chapterHref,
+	getBook,
+	getBooksOf,
+	getChaptersInBook,
+	getHub,
+	getProject,
+	getProjects,
+	seriesRoot,
+} from '../../../../../lib/platform';
+
+export async function getStaticPaths() {
+	const projects = await getProjects();
+	const out = [];
+	for (const p of projects) {
+		const books = await getBooksOf(p.id);
+		for (const book of books) {
+			const key = book.id.slice(book.id.indexOf('/') + 1);
+			const chapters = await getChaptersInBook(book.id);
+			for (const chapter of chapters) {
+				const name = chapter.id.split('/')[2];
+				out.push({ params: { slug: p.id, book: key, chapter: name } });
+			}
+		}
+	}
+	return out;
+}
+
+const { slug = '', book: bookKey = '', chapter: chapterName = '' } = Astro.params;
+const project = await getProject(slug);
+const hub = await getHub();
+const root = seriesRoot(slug);
+
+const books = project ? await getBooksOf(slug) : [];
+const book = await getBook(slug, bookKey);
+const bookIdx = book ? books.findIndex((b) => b.id === book.id) : -1;
+const nextBook = bookIdx >= 0 && bookIdx < books.length - 1 ? books[bookIdx + 1] : undefined;
+const inBook = book ? await getChaptersInBook(book.id) : [];
+const curIdx = inBook.findIndex((c) => c.id.split('/')[2] === chapterName);
+const chapter = curIdx >= 0 ? inBook[curIdx] : undefined;
+const isFirst = curIdx === 0;
+const isLast = curIdx === inBook.length - 1;
+
+const { Content } = chapter ? await render(chapter) : { Content: undefined };
+const num = String(chapter?.data.order ?? 0).padStart(2, '0');
+
+const prev = !chapter
+	? undefined
+	: isFirst
+		? book
+			? {
+					bookId: book.id,
+					bookKey,
+					bookTitle: book.data.shortTitle,
+					num: 0,
+					title: book.data.title,
+					href: `${root}/books/${bookKey}/`,
+								}
+			: undefined
+		: (() => {
+				const c = inBook[curIdx - 1];
+				return {
+					bookId: book.id,
+					bookKey,
+					bookTitle: book.data.shortTitle,
+					num: c.data.order,
+					title: c.data.title,
+					href: chapterHref(slug, bookKey, c.id.split('/')[2]),
+				};
+			})();
+
+const next = !chapter
+	? undefined
+	: isLast
+		? nextBook
+			? {
+					bookId: nextBook.id,
+					bookKey: nextBook.id.slice(nextBook.id.indexOf('/') + 1),
+					bookTitle: nextBook.data.shortTitle,
+					num: 0,
+					title: nextBook.data.title,
+					href: `${root}/books/${nextBook.id.slice(nextBook.id.indexOf('/') + 1)}/`,
+				}
+			: undefined
+		: (() => {
+				const c = inBook[curIdx + 1];
+				return {
+					bookId: book.id,
+					bookKey,
+					bookTitle: book.data.shortTitle,
+					num: c.data.order,
+					title: c.data.title,
+					href: chapterHref(slug, bookKey, c.id.split('/')[2]),
+				};
+			})();
+
+const title = project?.data.title ?? hub?.data.title ?? 'Lets Learn';
+const footer =
+	project?.data.footer ?? `${hub?.data.title ?? 'Lets Learn'}, a series by TrieOH`;
+const backLabel = project?.data.backLabel ?? `All ${hub?.data.title ?? 'series'}`;
+---
+
+<Base
+	title={chapter ? `${num} · ${chapter.data.title}` : 'Not found'}
+	description={project?.data.description}
+	brand={title}
+	brandHref={project ? root : '/'}
+	read
+	footerText={footer}
+	footerLinks={project ? [{ label: backLabel, href: '/' }] : []}
+	nav={
+		project
+			? [
+					{ label: 'Home', href: root, exact: true },
+					{ label: 'Books', href: `${root}/books` },
+				]
+			: []
+	}
+>
+	{chapter && book && Content ? (
+		<>
+			<nav class="breadcrumbs" aria-label="Breadcrumb">
+				<a href={root}>Home</a> / <a href={`${root}/books`}>Books</a> /
+				<a href={`${root}/books/${bookKey}/`}>{book.data.title}</a> / {chapter.data.title}
+			</nav>
+
+			<header class="book-head">
+				<div class="book-head__number">
+					{book.data.shortTitle}
+					<Dot size={13} aria-hidden="true" />
+					Chapter {num}
+				</div>
+				<h1>{chapter.data.title}</h1>
+				<div class="meta-line">
+					<a class="back-link" href={`${root}/books/${bookKey}/`}>
+						Back to {book.data.title}
+					</a>
+				</div>
+			</header>
+
+			<div class="prose"><Content /></div>
+
+			{(prev || next) && (
+				<nav class="book-nav" aria-label="Chapter navigation">
+					{prev && (
+						<ChapterNavItem
+							item={prev}
+							dir="prev"
+							currentBookId={book.id}
+							label={isFirst ? 'Back to book' : undefined}
+						/>
+					)}
+					{next && (
+						<ChapterNavItem
+							item={next}
+							dir="next"
+							currentBookId={book.id}
+							label={isLast ? 'Next book' : undefined}
+						/>
+					)}
+				</nav>
+			)}
+		</>
+	) : (
+		<p>Not found.</p>
+	)}
+</Base>
+
+<script>
+	// Wire up CodeReveal copy buttons (present on rendered markdown content).
+	const buttons = document.querySelectorAll('.code-reveal__copy');
+	for (const btn of buttons) {
+		btn.addEventListener('click', async (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			const details = btn.closest('.code-reveal');
+			const code = details?.querySelector('.code-reveal__body code');
+			if (!code) return;
+			try {
+				await navigator.clipboard.writeText(code.textContent ?? '');
+				btn.textContent = 'Copied';
+				btn.classList.add('copied');
+				setTimeout(() => {
+					btn.textContent = 'Copy';
+					btn.classList.remove('copied');
+				}, 1500);
+			} catch {
+				const range = document.createRange();
+				range.selectNodeContents(code);
+				const selection = window.getSelection();
+				selection?.removeAllRanges();
+				selection?.addRange(range);
+			}
+		});
+	}
+</script>

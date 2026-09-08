@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Content editor</title>
+		<link rel="stylesheet" href="/_editor/editor.css" />
+	</head>
+	<body>
+		<header class="ed-header">
+			<div class="ed-header__brand">
+				<span class="ed-logo" aria-hidden="true">✎</span>
+				<span>Learn editor</span>
+				<span class="ed-header__tag">editorial mode · writes to <code>content/</code></span>
+			</div>
+			<div class="ed-header__actions">
+				<button
+					id="btn-restart"
+					class="btn btn--ghost"
+					type="button"
+					title="Force a content-layer re-scan (needed only if new files don't show up)">
+					Re-scan content
+				</button>
+				<a class="btn" href="/" target="_blank" rel="noreferrer">View site ↗</a>
+			</div>
+		</header>
+
+		<div class="ed-shell">
+			<aside class="ed-list" aria-label="Content">
+				<div class="ed-list__head">
+					<span>Hub + series</span>
+					<button id="btn-new-project" class="btn btn--small btn--primary" type="button">
+						＋ New series
+					</button>
+				</div>
+				<ul id="tree" class="tree"></ul>
+			</aside>
+
+			<main id="form-pane" class="ed-form" aria-label="Editor"></main>
+
+			<section class="ed-preview" aria-label="Preview">
+				<div class="ed-preview__bar">
+					<div class="ed-seg" id="preview-seg">
+						<button type="button" data-target="root" class="is-on">Root</button>
+						<button type="button" data-target="item">Item</button>
+					</div>
+					<div class="ed-preview__tools">
+						<button id="btn-reload-preview" class="btn btn--small btn--ghost" type="button">
+							⟳
+						</button>
+						<a
+							id="open-new-tab"
+							class="btn btn--small btn--ghost"
+							href="/"
+							target="_blank"
+							rel="noreferrer">Open ↗</a>
+					</div>
+				</div>
+				<iframe id="preview-frame" title="Site preview"></iframe>
+			</section>
+		</div>
+
+		<div id="toasts" class="toasts" aria-live="polite"></div>
+
+		<script type="module" src="/_editor/editor.js"></script>
+	</body>
+</html>

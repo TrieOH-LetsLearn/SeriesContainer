@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 128 128">
+  <path d="M64 30c-9-7-22-9-34-7v72c12-2 25 0 34 7 9-7 22-9 34-7V23c-12-2-25 0-34 7Z" stroke="#000" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M64 30v72" stroke="#000" stroke-width="8" stroke-linecap="round"/>
+  <style>
+    path { stroke: #000; }
+    @media (prefers-color-scheme: dark) {
+      path { stroke: #FFF; }
+    }
+  </style>
+</svg>

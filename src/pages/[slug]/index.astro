@@ -1,0 +1,78 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import {
+	buildSequence,
+	getBooksOf,
+	getHub,
+	getProjects,
+	getProject,
+	seriesRoot,
+} from '../../lib/platform';
+
+export async function getStaticPaths() {
+	const projects = await getProjects();
+	return projects.map((p) => ({ params: { slug: p.id } }));
+}
+
+const { slug = '' } = Astro.params;
+const project = await getProject(slug);
+const hub = await getHub();
+const missing = !project;
+
+const root = seriesRoot(slug);
+const books = missing ? [] : await getBooksOf(slug);
+const seq = missing ? [] : await buildSequence(slug);
+const start = seq[0];
+const projectTitle = project?.data.title ?? 'Lets Learn';
+const projectTagline = project?.data.tagline ?? '';
+const projectFooter =
+	project?.data.footer ?? `${hub?.data.title ?? 'Lets Learn'}, a series by TrieOH`;
+const backLabel = project?.data.backLabel ?? `All ${hub?.data.title ?? 'series'}`;
+const { Content } = project ? await render(project) : { Content: undefined };
+---
+
+<Base
+	title={missing ? 'Not found' : projectTitle}
+	description={project?.data.description}
+	brand={missing ? (hub?.data.title ?? 'Lets Learn') : projectTitle}
+	brandHref={missing ? '/' : root}
+	footerText={missing ? (hub?.data.footer ?? 'Lets Learn by TrieOH') : projectFooter}
+	footerLinks={missing ? [] : [{ label: backLabel, href: '/' }]}
+	nav={
+		missing
+			? []
+			: [
+					{ label: 'Home', href: root, exact: true },
+					{ label: 'Books', href: `${root}/books` },
+				]
+	}
+>
+	{missing ? (
+		<p>This series does not exist.</p>
+	) : (
+		<>
+			<section class="home-hero">
+				<h1>{projectTitle}</h1>
+				{projectTagline && <p class="tagline">{projectTagline}</p>}
+				<div class="home-cta">
+					<a class="btn btn--primary" href={start?.href ?? `${root}/books/`}>
+						Start reading
+					</a>
+					<a class="btn" href={`${root}/books/`}>Browse the books</a>
+				</div>
+				<p class="home-stats">
+					<span>{books.length} books</span>
+					<span aria-hidden="true">·</span>
+					<span>{seq.length} chapters</span>
+				</p>
+			</section>
+
+			{Content && (
+				<section class="home-about prose">
+					<Content />
+				</section>
+			)}
+		</>
+	)}
+</Base>

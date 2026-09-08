@@ -1,0 +1,156 @@
+---
+import { render } from 'astro:content';
+import { ArrowRight, ChevronRight, Dot } from 'lucide-astro';
+import Base from '../../../../layouts/Base.astro';
+import {
+	BOOK_STATUS_LABEL,
+	bookHref,
+	chapterHref,
+	countChapters,
+	getBook,
+	getBooksOf,
+	getChaptersInBook,
+	getHub,
+	getProject,
+	getProjects,
+	seriesRoot,
+} from '../../../../lib/platform';
+
+export async function getStaticPaths() {
+	const projects = await getProjects();
+	const out = [];
+	for (const p of projects) {
+		const books = await getBooksOf(p.id);
+		for (const book of books) {
+			const key = book.id.slice(book.id.indexOf('/') + 1);
+			out.push({ params: { slug: p.id, book: key } });
+		}
+	}
+	return out;
+}
+
+const { slug = '', book: bookKey = '' } = Astro.params;
+const project = await getProject(slug);
+const book = await getBook(slug, bookKey);
+const hub = await getHub();
+const root = seriesRoot(slug);
+
+const books = project ? await getBooksOf(slug) : [];
+const idx = book ? books.findIndex((b) => b.id === book.id) : -1;
+const prev = idx > 0 ? books[idx - 1] : undefined;
+const next = idx >= 0 && idx < books.length - 1 ? books[idx + 1] : undefined;
+const chapters = book ? await getChaptersInBook(book.id) : [];
+const chapterCount = chapters.length;
+const startHref = chapters[0] ? chapterHref(slug, bookKey, chapters[0].id.split('/')[2]) : null;
+const { Content } = book ? await render(book) : { Content: undefined };
+
+const title = project?.data.title ?? hub?.data.title ?? 'Lets Learn';
+const footer =
+	project?.data.footer ?? `${hub?.data.title ?? 'Lets Learn'}, a series by TrieOH`;
+const backLabel = project?.data.backLabel ?? `All ${hub?.data.title ?? 'series'}`;
+---
+
+<Base
+	title={book ? `${book.data.shortTitle} · ${book.data.title}` : 'Not found'}
+	description={project?.data.description}
+	brand={title}
+	brandHref={project ? root : '/'}
+	read
+	footerText={footer}
+	footerLinks={project ? [{ label: backLabel, href: '/' }] : []}
+	nav={
+		project
+			? [
+					{ label: 'Home', href: root, exact: true },
+					{ label: 'Books', href: `${root}/books` },
+				]
+			: []
+	}
+>
+	{book && Content ? (
+		<>
+			<nav class="breadcrumbs" aria-label="Breadcrumb">
+				<a href={root}>Home</a> / <a href={`${root}/books`}>Books</a> / {book.data.title}
+			</nav>
+
+			<header class="book-head">
+				<div class="book-head__number">{book.data.shortTitle}</div>
+				<h1>{book.data.title}</h1>
+				<div class="meta-line">
+					<span class={`status status--${book.data.status}`}>
+						{BOOK_STATUS_LABEL[book.data.status]}
+					</span>
+					<span class="count">
+						{chapterCount} {chapterCount === 1 ? 'chapter' : 'chapters'}
+					</span>
+				</div>
+			</header>
+
+			<div class="book-intro prose"><Content /></div>
+
+			<section class="chapter-list">
+				{startHref && (
+					<a class="btn btn--primary btn--block" href={startHref}>
+						<span>Start reading this book</span>
+						<ArrowRight size={18} stroke-width={2.5} aria-hidden="true" />
+					</a>
+				)}
+				<h2>Chapters</h2>
+				{chapters.length ? (
+					<ol class="chapters">
+						{chapters.map((chapter) => {
+							const name = chapter.id.split('/')[2];
+							return (
+								<li class="linked">
+									<span class="idx">
+										{String(chapter.data.order).padStart(2, '0')}
+									</span>
+									<a class="name" href={chapterHref(slug, bookKey, name)}>
+										{chapter.data.title}
+									</a>
+									<ChevronRight
+										size={18}
+										stroke-width={2.5}
+										class="chevron"
+										aria-hidden="true"
+									/>
+								</li>
+							);
+						})}
+					</ol>
+				) : (
+					<p class="chapters-empty">
+						No chapters written yet. This book is still in planning.
+					</p>
+				)}
+			</section>
+
+			<nav class="book-nav" aria-label="Book navigation">
+				{prev && (
+					<a href={bookHref(root, prev.id.slice(prev.id.indexOf('/') + 1))}>
+						<span class="label">Previous</span>
+						<span class="title">
+							{prev.data.shortTitle}
+							<Dot size={14} aria-hidden="true" />
+							{prev.data.title}
+						</span>
+					</a>
+				)}
+				{next && (
+					<a
+						class="next"
+						href={bookHref(root, next.id.slice(next.id.indexOf('/') + 1))}>
+						<span class="label">Next</span>
+						<span class="title">
+							{next.data.shortTitle}
+							<Dot size={14} aria-hidden="true" />
+							{next.data.title}
+						</span>
+					</a>
+				)}
+			</nav>
+		</>
+	) : (
+		<p>Not found.</p>
+	)}
+</Base>

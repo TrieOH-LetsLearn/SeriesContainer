@@ -1,0 +1,29 @@
+---
+import type { Book } from '../lib/platform';
+import { BOOK_STATUS_LABEL, bookHref, countChapters } from '../lib/platform';
+
+interface Props {
+	/** Series root URL prefix, e.g. "/ai". */
+	root: string;
+	book: Book;
+}
+
+const { root, book } = Astro.props;
+const bookKey = book.id.slice(book.id.indexOf('/') + 1);
+const chapterCount = await countChapters(book.id);
+---
+
+<a class="book-card" href={bookHref(root, bookKey)}>
+	<div class="book-card__top">
+		<span class="book-card__number">{book.data.shortTitle}</span>
+		<span class={`status status--${book.data.status}`}>
+			{BOOK_STATUS_LABEL[book.data.status]}
+		</span>
+	</div>
+	<div class="book-card__title">{book.data.title}</div>
+	<div class="book-card__meta">
+		{chapterCount > 0
+			? `${chapterCount} ${chapterCount === 1 ? 'chapter' : 'chapters'}`
+			: 'no chapters yet'}
+	</div>
+</a>

@@ -1,0 +1,44 @@
+---
+import { render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { getHub, getPublicProjects } from '../lib/platform';
+
+const hub = await getHub();
+const projects = await getPublicProjects();
+
+const title = hub?.data.title ?? 'Lets Learn';
+const tagline = hub?.data.tagline ?? '';
+const description = hub?.data.description ?? '';
+const footer = hub?.data.footer ?? `${title} by TrieOH`;
+const { Content } = hub ? await render(hub) : { Content: undefined };
+---
+
+<Base title={title} description={description} brand={title} footerText={footer}>
+	<section class="home-hero hub-hero">
+		<h1>{title}</h1>
+		{tagline && <p class="tagline">{tagline}</p>}
+	</section>
+
+	{
+		projects.length > 0 ? (
+			<section aria-label="Series">
+				<h2 class="section-kicker">Series</h2>
+				<div class="project-grid">
+					{projects.map((project) => <ProjectCard project={project} />)}
+				</div>
+			</section>
+		) : (
+			<p class="hub-empty">
+				No series yet — they appear here as their deploy is set live from the
+				editor.
+			</p>
+		)
+	}
+
+	{Content && (
+		<section class="home-about prose hub-intro">
+			<Content />
+		</section>
+	)}
+</Base>

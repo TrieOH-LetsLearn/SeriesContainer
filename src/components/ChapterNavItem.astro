@@ -1,0 +1,22 @@
+---
+import type { SeqItem } from '../lib/sequence';
+
+interface Props {
+	item: SeqItem;
+	dir: 'prev' | 'next';
+	currentBookId: string;
+	/** Custom label, e.g. "Back to book" / "Next book" at book boundaries. */
+	label?: string;
+}
+
+const { item, dir, currentBookId } = Astro.props;
+const label = Astro.props.label ?? (dir === 'prev' ? 'Previous' : 'Next');
+const title =
+	item.bookId === currentBookId ? item.title : `${item.bookTitle}: ${item.title}`;
+const cls = dir === 'next' ? 'next' : '';
+---
+
+<a class={cls} href={item.href}>
+	<span class="label">{label}</span>
+	<span class="title">{title}</span>
+</a>

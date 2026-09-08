@@ -1,0 +1,49 @@
+---
+import Base from '../../../layouts/Base.astro';
+import BookCard from '../../../components/BookCard.astro';
+import { getBooksOf, getHub, getProjects, getProject, seriesRoot } from '../../../lib/platform';
+
+export async function getStaticPaths() {
+	const projects = await getProjects();
+	return projects.map((p) => ({ params: { slug: p.id } }));
+}
+
+const { slug = '' } = Astro.params;
+const project = await getProject(slug);
+const hub = await getHub();
+const root = seriesRoot(slug);
+const books = project ? await getBooksOf(slug) : [];
+const title = project?.data.title ?? 'Lets Learn';
+const footer = project?.data.footer ?? `${hub?.data.title ?? 'Lets Learn'}, a series by TrieOH`;
+---
+
+<Base
+	title={`Books · ${title}`}
+	description={project?.data.description}
+	brand={title}
+	brandHref={root}
+	footerText={footer}
+	footerLinks={[{ label: project?.data.backLabel ?? 'All series', href: '/' }]}
+	nav={[
+		{ label: 'Home', href: root, exact: true },
+		{ label: 'Books', href: `${root}/books`, exact: true },
+	]}
+>
+	<nav class="breadcrumbs" aria-label="Breadcrumb">
+		<a href={root}>Home</a> / Books
+	</nav>
+
+	<header class="book-head">
+		<div class="book-head__number">The curriculum</div>
+		<h1>Books</h1>
+	</header>
+
+	<p class="book-intro">
+		{books.length} {books.length === 1 ? 'book' : 'books'} in this series — each one
+		self-contained, building on the last.
+	</p>
+
+	<section class="books-grid" aria-label="All books">
+		{books.map((book) => <BookCard root={root} book={book} />)}
+	</section>
+</Base>
