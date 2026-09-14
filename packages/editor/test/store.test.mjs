@@ -200,6 +200,23 @@ console.log('Asset import (images)');
 	}
 	ok(/not an image/.test(threw), 'non-image extensions are rejected');
 
+	// asset/read round-trips bytes for the preview
+	const readBack = await call('asset/read', { name: 'result-picture.png' });
+	ok(Buffer.from(bytes).equals(Buffer.from(readBack.data.data)), 'asset/read returns the stored bytes');
+	let readErr = '';
+	try {
+		await call('asset/read', { name: 'nope.png' });
+	} catch (err) {
+		readErr = err.message;
+	}
+	ok(/not found/.test(readErr), 'asset/read rejects missing assets');
+	try {
+		await call('asset/read', { name: '../home.md' });
+	} catch (err) {
+		readErr = err.message;
+	}
+	ok(/Invalid asset name/.test(readErr), 'asset/read rejects path traversal');
+
 	threw = '';
 	try {
 		await call('asset/import', { name: 'no-ext', data: bytes });

@@ -1026,3 +1026,185 @@ textarea {
 	color: var(--text-faint);
 	padding-left: 0.25rem;
 }
+
+/* ---------------------------------------------------------------------------
+   Book-page components in the preview — ported from the renderer's
+   global.css so the pane shows the chapter exactly as the site renders it.
+   --------------------------------------------------------------------------- */
+
+.md-preview .spoiler-image {
+	position: relative;
+	display: block;
+	margin: 1.5rem 0;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--bg-raised);
+	overflow: hidden;
+}
+
+.md-preview .spoiler-image__body img {
+	display: block;
+	width: 100%;
+	height: auto;
+	margin: 0;
+	border: 0;
+	border-radius: 0;
+	transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+/* Closed spoiler: heavy blur + slight zoom, like the site. */
+.md-preview .spoiler-image:not([open]) .spoiler-image__body img {
+	filter: blur(32px) saturate(1.4) brightness(0.92);
+	transform: scale(1.15);
+}
+
+.md-preview .spoiler-image__toggle {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	list-style: none;
+}
+
+.md-preview .spoiler-image__toggle::-webkit-details-marker {
+	display: none;
+}
+
+.md-preview .spoiler-image__pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.55rem 1.1rem;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	background: rgba(10, 12, 16, 0.72);
+	color: #fff;
+	font-size: 0.88rem;
+	font-weight: 600;
+	backdrop-filter: blur(4px);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.md-preview .spoiler-image__icon {
+	width: 1.05em;
+	height: 1.05em;
+	flex: none;
+}
+
+.md-preview .spoiler-image__icon--on,
+.md-preview .spoiler-image__label--hide {
+	display: none;
+}
+
+/* Open: the toggle shrinks to a small "Hide" chip in the corner. */
+.md-preview .spoiler-image[open] .spoiler-image__toggle {
+	inset: auto 0.6rem 0.6rem auto;
+	justify-content: flex-end;
+}
+
+.md-preview .spoiler-image[open] .spoiler-image__pill {
+	padding: 0.3rem 0.75rem;
+	font-size: 0.78rem;
+	border-color: var(--border);
+	background: rgba(10, 12, 16, 0.6);
+}
+
+.md-preview .spoiler-image[open] .spoiler-image__icon--off,
+.md-preview .spoiler-image[open] .spoiler-image__label--show {
+	display: none;
+}
+
+.md-preview .spoiler-image[open] .spoiler-image__icon--on,
+.md-preview .spoiler-image[open] .spoiler-image__label--hide {
+	display: inline;
+}
+
+.md-preview .code-reveal {
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--bg-raised);
+	margin: 1.5rem 0;
+	overflow: hidden;
+}
+
+.md-preview .code-reveal__summary {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.8rem 1rem;
+	cursor: pointer;
+	list-style: none;
+	user-select: none;
+	color: var(--text-muted);
+	font-size: 0.9rem;
+	font-weight: 600;
+	transition: color 0.15s ease;
+}
+
+.md-preview .code-reveal__summary::-webkit-details-marker {
+	display: none;
+}
+
+.md-preview .code-reveal__summary:hover {
+	color: var(--text);
+}
+
+/* CSS chevron — no glyphs, same as the site. */
+.md-preview .code-reveal__summary::before {
+	content: '';
+	width: 0.5em;
+	height: 0.5em;
+	border-right: 2px solid var(--accent);
+	border-bottom: 2px solid var(--accent);
+	transform: rotate(-45deg);
+	transition: transform 0.15s ease;
+	flex-shrink: 0;
+	margin-top: -0.15em;
+}
+
+.md-preview .code-reveal[open] .code-reveal__summary::before {
+	transform: rotate(45deg);
+}
+
+.md-preview .code-reveal__label {
+	flex: 1;
+}
+
+.md-preview .code-reveal__hint {
+	color: var(--text-faint);
+	font-weight: 500;
+	font-size: 0.82rem;
+}
+
+.md-preview .code-reveal__copy {
+	appearance: none;
+	background: none;
+	border: 1px solid var(--border);
+	color: var(--text-muted);
+	border-radius: 6px;
+	padding: 0.25rem 0.75rem;
+	font-size: 0.8rem;
+	font-family: var(--font-sans);
+	font-weight: 500;
+	cursor: pointer;
+	transition:
+		border-color 0.15s ease,
+		color 0.15s ease;
+}
+
+.md-preview .code-reveal__copy:hover {
+	border-color: var(--accent);
+	color: var(--accent-strong);
+}
+
+.md-preview .code-reveal__copy.copied {
+	border-color: var(--ok);
+	color: var(--ok);
+}
+
+.md-preview .code-reveal__body pre {
+	margin: 0;
+}

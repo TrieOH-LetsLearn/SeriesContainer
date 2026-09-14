@@ -12,7 +12,10 @@ class MockFile {
 		this.kind = 'file';
 	}
 	async getFile() {
-		return { text: async () => fsp.readFile(this.path, 'utf8') };
+		return {
+			text: async () => fsp.readFile(this.path, 'utf8'),
+			arrayBuffer: async () => (await fsp.readFile(this.path)).buffer,
+		};
 	}
 	async createWritable() {
 		const file = this;

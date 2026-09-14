@@ -706,6 +706,34 @@ async function assetImport(payload) {
 	return { name, path: `/assets/${name}` };
 }
 
+/**
+ * Read an image back out of the content folder's central assets/ directory
+ * (binary ArrayBuffer), so the editor preview can show assets that were
+ * imported in an earlier session. Name is a bare file name — no paths.
+ */
+async function assetRead(payload) {
+	const { name: rawName } = payload;
+	if (typeof rawName !== 'string' || !rawName.trim()) {
+		throw new ApiError('Asset name is required.');
+	}
+	if (rawName.includes('/') || rawName.includes('\\') || rawName.startsWith('.')) {
+		throw new ApiError(`Invalid asset name "${rawName}".`);
+	}
+	const dir = await ensureAt(['assets']);
+	let fh;
+	try {
+		fh = await dir.getFileHandle(rawName);
+	} catch {
+		throw new ApiError(`Asset "${rawName}" not found in content/assets/.`);
+	}
+	try {
+		const file = await fh.getFile();
+		return { name: rawName, data: await file.arrayBuffer() };
+	} catch (err) {
+		throw new ApiError(`Could not read asset "${rawName}": ${err.message}`);
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Initialize a project (scaffolding for the two presets)
 // ---------------------------------------------------------------------------
@@ -785,6 +813,7 @@ const OPS = {
 	'chapter/save': saveChapter,
 	'chapter/delete': deleteChapter,
 	'asset/import': assetImport,
+	'asset/read': assetRead,
 	initialize,
 };
 

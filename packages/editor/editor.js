@@ -7,7 +7,7 @@
 
 import * as store from './store.mjs';
 import * as fsa from './fs.mjs';
-import { marked } from './vendor/marked.js';
+import { marked, Marked } from './vendor/marked.js';
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) =>
@@ -198,7 +198,7 @@ async function onImagePicked(spoiler) {
 		importedAssets.set(res.path, URL.createObjectURL(file));
 		insertSnippet({
 			block: true,
-			before: `${spoiler ? '!sp' : ''}[`,
+			before: `${spoiler ? '!sp' : ''}![`,
 			after: `](${res.path})`,
 			placeholder: alt,
 		});
@@ -934,19 +934,186 @@ function schedulePreview() {
 	previewTimer = setTimeout(renderPreview, 250);
 }
 
+// Book-page preview: replicate the renderer's markdown pipeline (the site's
+// spoiler-image and code-reveal plugins) so the pane shows the chapter the
+// way the book page will. Same component markup, same class names.
+
+const IMAGE_EXT_RE = /\.(?:png|jpe?g|gif|webp|avif|svg|bmp|ico)(?:$|[?#])/i;
+const SP_MARKER_RE = /!sp\s*$/;
+
+// Blob URLs for /assets/… files read from disk (not imported this session).
+const diskAssets = new Map();
+
+async function loadAssetUrl(path) {
+	if (importedAssets.has(path)) return importedAssets.get(path);
+	if (diskAssets.has(path)) return diskAssets.get(path);
+	try {
+		const { data } = await api('asset/read', { name: path.replace(/^\/assets\//, '') });
+		const url = URL.createObjectURL(new Blob([data]));
+		diskAssets.set(path, url);
+		return url;
+	} catch {
+		return null; // missing asset: leave the path; the real site serves it
+	}
+}
+
+// --- code-reveal (port of the renderer's code-reveal-plugin.mjs) -------------
+
+let codeDecisions = [];
+let codeIndex = 0;
+
+/** Collect code tokens in document order (lists nest them one level deep). */
+function collectCode(tokens, out) {
+	for (const t of tokens) {
+		if (t.type === 'code') {
+			out.push(t);
+		} else {
+			if (Array.isArray(t.tokens)) collectCode(t.tokens, out);
+			if (Array.isArray(t.items)) for (const it of t.items) collectCode(it.tokens ?? [], out);
+		}
+	}
+}
+
+/** keep/reveal via fence meta; unmarked blocks: only the LAST one is hidden. */
+function computeCodeDecisions(codeTokens) {
+	const decisions = codeTokens.map((t) => {
+		const meta = t.lang ?? '';
+		if (/\bkeep\b/i.test(meta)) return false;
+		if (/\breveal\b/i.test(meta)) return true;
+		return null;
+	});
+	const last = decisions.length - 1;
+	return decisions.map((d, i) => (d === null ? i === last : d));
+}
+
+// A dedicated Marked instance whose code renderer wraps hidden blocks in the
+// site's <details class="code-reveal"> structure.
+const bookMarked = new Marked();
+bookMarked.use({
+	renderer: {
+		code(token) {
+			const hidden = codeDecisions[codeIndex++] ?? false;
+			const info = (token.lang ?? '').trim();
+			const lang = info ? info.split(/\s+/)[0] : '';
+			const cls = lang ? ` class="language-${esc(lang)}"` : '';
+			const pre = `<pre><code${cls}>${esc(token.text ?? '')}</code></pre>`;
+			if (!hidden) return pre;
+			return (
+				`<details class="code-reveal"><summary class="code-reveal__summary">` +
+				`<span class="code-reveal__label">Reference code` +
+				`<span class="code-reveal__hint"> (try it yourself first)</span></span>` +
+				`<button type="button" class="code-reveal__copy">Copy</button></summary>` +
+				`<div class="code-reveal__body">${pre}</div></details>`
+			);
+		},
+	},
+});
+
+// --- spoiler images (port of spoiler-image-plugin.mjs) -----------------------
+
+const EYE_ICON = '<svg class="spoiler-image__icon spoiler-image__icon--on" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.699 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .699 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF_ICON = '<svg class="spoiler-image__icon spoiler-image__icon--off" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .654 10.747 10.747 0 0 1-1.044 1.861 10.747 10.747 0 0 1-15.417-5.151 1 1 0 0 1 0-.654 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
+
+function buildSpoiler(src, alt) {
+	const details = document.createElement('details');
+	details.className = 'spoiler-image';
+	const summary = document.createElement('summary');
+	summary.className = 'spoiler-image__toggle';
+	summary.setAttribute('aria-label', 'Reveal spoiler image');
+	summary.innerHTML =
+		`<span class="spoiler-image__pill">${EYE_OFF_ICON}${EYE_ICON}` +
+		`<span class="spoiler-image__label spoiler-image__label--show">Show image</span>` +
+		`<span class="spoiler-image__label spoiler-image__label--hide">Hide image</span></span>`;
+	const body = document.createElement('div');
+	body.className = 'spoiler-image__body';
+	const img = document.createElement('img');
+	img.src = src;
+	img.alt = alt ?? '';
+	img.loading = 'lazy';
+	img.decoding = 'async';
+	body.appendChild(img);
+	details.append(summary, body);
+	return details;
+}
+
+/**
+ * The site's mdast phase normalizes `!sp` + image/link-to-image into a
+ * marked image; here the same rule runs over the rendered DOM: a text node
+ * ending with `!sp` followed by an <img> (or a link whose href is an image)
+ * becomes the spoiler <details> structure.
+ */
+function applySpoilers(rootEl) {
+	const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT);
+	const textNodes = [];
+	while (walker.nextNode()) {
+		const n = walker.currentNode;
+		if (SP_MARKER_RE.test(n.nodeValue) && n.nextElementSibling) textNodes.push(n);
+	}
+	for (const textNode of textNodes) {
+		const next = textNode.nextElementSibling;
+		let src = null;
+		let alt = '';
+		let target = null;
+		if (next.tagName === 'IMG') {
+			src = next.getAttribute('src');
+			alt = next.getAttribute('alt') ?? '';
+			target = next;
+		} else if (next.tagName === 'A' && IMAGE_EXT_RE.test(next.getAttribute('href') ?? '')) {
+			src = next.getAttribute('href');
+			alt = next.textContent;
+			target = next;
+		}
+		if (!src) continue;
+		const rest = textNode.nodeValue.replace(SP_MARKER_RE, '');
+		if (rest.trim()) textNode.nodeValue = rest;
+		else textNode.nodeValue = '';
+		target.replaceWith(buildSpoiler(src, alt));
+	}
+	// Drop now-empty text nodes so no stray gaps remain.
+	rootEl.querySelectorAll('*').forEach((el) => {
+		for (const n of [...el.childNodes]) {
+			if (n.nodeType === Node.TEXT_NODE && !n.nodeValue) n.remove();
+		}
+	});
+}
+
+// --- the render --------------------------------------------------------------
+
 function renderPreview() {
 	const pane = $('#preview-frame');
 	const md = $('#f-body')?.value ?? '';
-	// The editor has no server: show spoiler images as plain images and swap
-	// imported assets for their blob URLs so the preview is readable.
-	let previewMd = md.replace(/!sp\[/g, '![');
-	for (const [path, url] of importedAssets) {
-		previewMd = previewMd.split(`](${path})`).join(`](${url})`);
+	if (!md.trim()) {
+		pane.innerHTML = '<p class="md-preview__empty">Nothing to preview yet — start writing markdown on the left.</p>';
+		return;
 	}
-	pane.innerHTML = previewMd.trim()
-		? marked.parse(previewMd)
-		: '<p class="md-preview__empty">Nothing to preview yet — start writing markdown on the left.</p>';
+	// Code-reveal decisions (same rules as the site) feed the code renderer.
+	const codeTokens = [];
+	collectCode(bookMarked.lexer(md), codeTokens);
+	codeDecisions = computeCodeDecisions(codeTokens);
+	codeIndex = 0;
+	pane.innerHTML = bookMarked.parse(md);
+	applySpoilers(pane);
+	// Resolve /assets/… images (session imports first, then from disk).
+	for (const img of pane.querySelectorAll('img[src^="/assets/"]')) {
+		const path = img.getAttribute('src');
+		loadAssetUrl(path).then((url) => {
+			if (url && img.isConnected) img.src = url;
+		});
+	}
 }
+
+$('#preview-frame').addEventListener('click', async (ev) => {
+	const btn = ev.target.closest('.code-reveal__copy');
+	if (!btn) return;
+	const code = btn.closest('.code-reveal')?.querySelector('pre code')?.textContent ?? '';
+	try {
+		await navigator.clipboard.writeText(code);
+		btn.textContent = 'Copied';
+		setTimeout(() => (btn.textContent = 'Copy'), 1500);
+	} catch {
+		toast('Could not copy to the clipboard.', 'err');
+	}
+});
 
 // ---------------------------------------------------------------------------
 // navigation
