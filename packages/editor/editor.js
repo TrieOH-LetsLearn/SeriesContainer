@@ -30,9 +30,10 @@ const slugify = (s) =>
 const pad = (n) => String(n ?? 0).padStart(2, '0');
 
 // --- debug overlay -----------------------------------------------------------
-// Captures every error + key flow step and prints them on-screen so failures
-// are visible without devtools. Auto-shown on the first message.
+// Captures every error + key flow step. Normal trace goes to the devtools
+// console only; the on-screen box appears for errors (and always with ?debug).
 
+const DEBUG_ALWAYS = /(?:^|[?&])debug(?:[=&]|$)/.test(location.search);
 const debugLines = [];
 const debugBox = document.createElement('pre');
 debugBox.className = 'debug-log';
@@ -41,6 +42,7 @@ debugBox.setAttribute('aria-hidden', 'true');
 document.body.appendChild(debugBox);
 
 function debug(...parts) {
+	const isError = parts.some((p) => p instanceof Error || /fail|error/i.test(String(p)));
 	const line = `[${new Date().toLocaleTimeString()}] ${parts
 		.map((p) => {
 			try {
@@ -51,8 +53,10 @@ function debug(...parts) {
 		})
 		.join(' ')}`;
 	debugLines.push(line);
-	debugBox.hidden = false;
-	debugBox.textContent = debugLines.join('\n');
+	if (DEBUG_ALWAYS || isError) {
+		debugBox.hidden = false;
+		debugBox.textContent = debugLines.join('\n');
+	}
 	console.log('[editor]', ...parts);
 }
 
