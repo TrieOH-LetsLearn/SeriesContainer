@@ -96,6 +96,88 @@ it online" — no servers to manage.
 
 ---
 
+## Putting your site online
+
+Your project builds into a folder of plain web pages, so it can live
+anywhere websites are hosted for free. The two we recommend:
+
+### Cloudflare Pages (recommended)
+
+Cloudflare gives you fast, free hosting with an easy dashboard.
+
+**The two-minute way — no tools needed:**
+
+1. Put your project folder on GitHub (create a repo and upload it).
+2. Go to the [Cloudflare dashboard](https://dash.cloudflare.com) →
+   **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
+3. Pick your repo, then tell Cloudflare how to build it:
+   - **Build command:** `npx @series-container/renderer build`
+   - **Build output directory:** `dist`
+   - **Environment variable:** add `NODE_VERSION` = `22`
+4. Hit **Save and Deploy**. Your site is live at
+   `your-project.pages.dev` — you can attach your own domain later in
+   the same dashboard.
+
+From now on, every time you push new lessons to GitHub, your site
+updates itself. ✨
+
+**The terminal way** (if you'd rather not use GitHub):
+
+```sh
+npx @series-container/renderer build        # creates the dist/ folder
+npx wrangler pages deploy dist              # uploads it to Cloudflare
+```
+
+The first time, `wrangler` opens a browser to log you in and asks for a
+project name — after that it's a single command to publish updates.
+
+### GitHub Pages
+
+Free hosting that lives right inside your GitHub repository.
+
+1. In your repo on GitHub, go to **Settings → Pages** and set **Source**
+   to **GitHub Actions**.
+2. Add a file named `.github/workflows/deploy.yml` to your project:
+
+   ```yaml
+   name: Deploy
+   on:
+     push:
+       branches: [main]
+   permissions:
+     contents: read
+     pages: write
+     id-token: write
+   jobs:
+     deploy:
+       runs-on: ubuntu-latest
+       environment:
+         name: github-pages
+         url: ${{ steps.deployment.outputs.page_url }}
+       steps:
+         - uses: actions/checkout@v4
+         - uses: actions/setup-node@v4
+           with:
+             node-version: 22
+         - name: Build
+           run: npx --yes @series-container/renderer build --base /YOUR_REPO_NAME
+         - uses: actions/configure-pages@v5
+         - uses: actions/upload-pages-artifact@v3
+           with:
+             path: dist
+         - uses: actions/deploy-pages@v4
+           id: deployment
+   ```
+
+3. Replace `YOUR_REPO_NAME` with your repository's name (GitHub hosts the
+   site under that name — e.g. `my-course` becomes
+   `yourname.github.io/my-course/`), commit, and push.
+
+That's it — every push rebuilds your site automatically.
+
+> Both hosts update your site whenever you push new lessons to GitHub.
+> Writing stays exactly the same: you just save files and push.
+
 ## Prefer writing by hand?
 
 Everything is plain **Markdown** — the same format used by GitHub, Notion
@@ -122,12 +204,11 @@ if you want the full details.
 
 ## For the technically curious
 
-- `packages/renderer` — the site builder. Run
-  `npx @series-container/renderer build` in any folder that has a
-  `content/` directory to get a complete static website in `dist/`.
-  It auto-detects whether your content is a Hub or a Book, supports
-  deploying under a sub-path (`--base /learn`), and deploys anywhere that
-  serves files.
+- `packages/renderer` — the site builder. It turns a `content/` folder
+  into a complete website (see *Putting your site online* above).
+  It auto-detects whether your content is a Hub or a Book, and can also
+  deploy under a sub-path (`--base /learn`) — that's how the Lets Learn
+  site itself lives at **trieoh.com/learn**.
 - `packages/editor` — the writing app. It's a static page: serve the
   folder with any file server and open it in a Chromium browser. It uses
   the File System Access API, so it needs no backend and never sends your
