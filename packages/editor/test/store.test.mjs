@@ -157,6 +157,20 @@ console.log('Opening an existing folder (mode detection)');
 	await store.open(new MockDir(bookRoot));
 	const cat2 = (await call('catalog')).data;
 	ok(cat2.mode === 'book', 'reopening the book project detects book mode');
+
+	// Opening never creates: a random folder must be rejected, not adopted.
+	const emptyRoot = path.join(tmpBase, 'not-a-project');
+	await fsp.mkdir(emptyRoot);
+	let openErr = '';
+	try {
+		await store.open(new MockDir(emptyRoot));
+	} catch (err) {
+		openErr = err.message;
+	}
+	ok(/not a SeriesContainer project/.test(openErr), 'opening a non-project folder throws');
+	const cat3 = (await call('catalog')).data;
+	ok(cat3.mode === 'book', 'the previously open project is untouched after a failed open');
+	ok(!(await fsp.stat(path.join(emptyRoot, 'content')).catch(() => false)), 'nothing was scaffolded by open');
 }
 
 // ===========================================================================

@@ -1240,8 +1240,6 @@ function render() {
 // start screen + initialize flow
 // ---------------------------------------------------------------------------
 
-let savedHandle = null;
-
 function showStart() {
 	$('#start-screen').hidden = false;
 	$('#ed-header').hidden = true;
@@ -1278,16 +1276,22 @@ async function enterEditor() {
 	}
 }
 
-$('#btn-open-folder').addEventListener('click', async () => {
+$('#btn-open-project').addEventListener('click', async () => {
 	$('#start-error').hidden = true;
 	try {
-		if (savedHandle) {
-			const ok = await store.restoreWithPrompt();
-			if (!ok) throw new Error('Could not re-open that folder.');
-		} else {
-			const handle = await fsa.pickRoot();
-			await store.open(handle);
-		}
+		const handle = await fsa.pickRoot();
+		await store.open(handle);
+		await enterEditor();
+	} catch (err) {
+		if (err?.name !== 'AbortError') showStartError(err.message);
+	}
+});
+
+$('#btn-continue').addEventListener('click', async () => {
+	$('#start-error').hidden = true;
+	try {
+		const ok = await store.restoreWithPrompt();
+		if (!ok) throw new Error('Could not re-open that folder.');
 		await enterEditor();
 	} catch (err) {
 		if (err?.name !== 'AbortError') showStartError(err.message);
@@ -1298,7 +1302,7 @@ $('#btn-open-folder').addEventListener('click', async () => {
 
 let initPreset = 'hub';
 
-$('#btn-init-project').addEventListener('click', () => {
+$('#btn-create-project').addEventListener('click', () => {
 	$('#start-error').hidden = true;
 	$('#init-error').hidden = true;
 	$('#init-modal').hidden = false;
@@ -1337,19 +1341,16 @@ $('#init-go').addEventListener('click', async () => {
 
 $('#btn-close-folder').addEventListener('click', async () => {
 	await store.close();
-	savedHandle = await fsa.loadRootHandle();
-	renderStartButton();
+	await refreshStart();
 	showStart();
 });
 
-function renderStartButton() {
-	const btn = $('#btn-open-folder');
-	if (savedHandle) {
-		btn.textContent = `Continue with “${savedHandle.name}”…`;
-		btn.classList.add('btn--primary');
-	} else {
-		btn.textContent = 'Open a content folder…';
-	}
+/** Show the “Continue with <folder>” button when a saved handle exists. */
+async function refreshStart() {
+	const saved = await fsa.loadRootHandle().catch(() => null);
+	const btn = $('#btn-continue');
+	btn.hidden = !saved;
+	if (saved) btn.textContent = `Continue with “${saved.name}”`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1357,7 +1358,6 @@ function renderStartButton() {
 // ---------------------------------------------------------------------------
 
 (async () => {
-	savedHandle = await fsa.loadRootHandle().catch(() => null);
-	renderStartButton();
+	await refreshStart();
 	showStart();
 })();

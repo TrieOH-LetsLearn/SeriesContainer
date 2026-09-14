@@ -18,18 +18,22 @@
 				</p>
 
 				<div class="start__actions">
-					<button id="btn-open-folder" class="btn btn--primary btn--big" type="button">
-						Open a content folder…
+					<button id="btn-open-project" class="btn btn--primary btn--big" type="button">
+						Open project…
 					</button>
-					<button id="btn-init-project" class="btn btn--big" type="button">
-						Initialize a project…
+					<button id="btn-create-project" class="btn btn--big" type="button">
+						Create project…
 					</button>
+					<button id="btn-continue" class="btn btn--big" type="button" hidden></button>
 				</div>
 
 				<p class="start__hint">
-					Initializing scaffolds <code>content/</code> into the folder you pick,
-					with either the <strong>Hub</strong> preset (a catalog of series) or
-					the <strong>Book</strong> preset (one series, no hub).
+					<strong>Open</strong> connects to an existing project — pick a folder that
+					contains a <code>content/</code> folder (or the content folder itself).
+					<strong>Create</strong> scaffolds a fresh <code>content/</code> into the folder
+					you pick, with either the <strong>Hub</strong> preset (a catalog of series) or
+					the <strong>Book</strong> preset (one series, no hub). Opening never creates
+					anything and creating never opens an existing site.
 				</p>
 				<p id="start-error" class="start__error" hidden></p>
 				<p class="start__note">

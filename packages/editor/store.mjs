@@ -39,21 +39,43 @@ class ApiError extends Error {
 	}
 }
 
-/** Open a picked folder as the working project. Descends into content/. */
+/** True if `dir` contains a file called `name`. */
+async function hasFile(dir, name) {
+	try {
+		await dir.getFileHandle(name);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/** True when `dir` itself looks like a content root (either preset). */
+async function looksLikeContentRoot(dir) {
+	if (await hasFile(dir, 'home.md')) return true;
+	if (await hasDir(dir, 'projects')) return true;
+	if (await hasDir(dir, 'books')) return true;
+	return false;
+}
+
+/**
+ * Open an EXISTING project. The picked folder is either a repo root that
+ * contains a `content/` folder, or a content root itself. Opening never
+ * creates anything: if neither shape matches it throws and the UI points the
+ * author at "Create project" instead.
+ */
 export async function open(picked) {
-	const hasContent = await hasDir(picked, 'content');
-	root = hasContent ? await picked.getDirectoryHandle('content') : picked;
+	let base = picked;
+	if (await hasDir(picked, 'content')) base = await picked.getDirectoryHandle('content');
+	if (!(await looksLikeContentRoot(base))) {
+		throw new ApiError(
+			`"${picked.name}" is not a SeriesContainer project — there is no content/ folder with a home page in it. Use “Create project” to scaffold one.`,
+			404,
+		);
+	}
+	root = base;
 	mode = await detectMode();
 	await fs.saveRootHandle(picked);
 	return { mode };
-}
-
-/** Reconnect to the last folder (permission already granted). */
-export async function restore() {
-	const picked = await fs.loadRootHandle();
-	if (!picked) return false;
-	if ((await picked.queryPermission({ mode: 'readwrite' })) !== 'granted') return false;
-	return open(picked).then(() => true);
 }
 
 /** Reconnect asking the user to re-grant permission. */
