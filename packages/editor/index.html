@@ -24,7 +24,6 @@
 					<button id="btn-create-project" class="btn btn--big" type="button">
 						Create project…
 					</button>
-					<button id="btn-continue" class="btn btn--big" type="button" hidden></button>
 				</div>
 
 				<p class="start__hint">
@@ -135,6 +134,29 @@
 		</div>
 
 		<div id="toasts" class="toasts" aria-live="polite"></div>
+
+		<script>
+			// Boot-level error catcher: runs before the module and shows ANY error
+			// (including a module that dies while wiring up) directly on the page.
+			(function () {
+				function showBootError(message) {
+					var box = document.getElementById('boot-log');
+					if (!box) return;
+					box.hidden = false;
+					box.textContent += message + '\n';
+				}
+				window.addEventListener('error', function (e) {
+					showBootError(
+						'[' + new Date().toLocaleTimeString() + '] ' + e.message + ' @ ' + e.filename + ':' + e.lineno + ':' + e.colno,
+					);
+				});
+				window.addEventListener('unhandledrejection', function (e) {
+					var r = e.reason;
+					showBootError('[' + new Date().toLocaleTimeString() + '] ' + (r && r.stack ? r.stack : String(r)));
+				});
+			})();
+		</script>
+		<pre id="boot-log" class="debug-log" hidden></pre>
 
 		<script type="module" src="./editor.js"></script>
 	</body>

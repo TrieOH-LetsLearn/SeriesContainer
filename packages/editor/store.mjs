@@ -78,6 +78,14 @@ export async function open(picked) {
 	return { mode };
 }
 
+/** Reconnect to the last folder, but ONLY if permission is already granted. */
+export async function restore() {
+	const picked = await fs.loadRootHandle();
+	if (!picked) return false;
+	if ((await picked.queryPermission({ mode: 'readwrite' })) !== 'granted') return false;
+	return open(picked).then(() => true);
+}
+
 /** Reconnect asking the user to re-grant permission. */
 export async function restoreWithPrompt() {
 	const picked = await fs.loadRootHandle();

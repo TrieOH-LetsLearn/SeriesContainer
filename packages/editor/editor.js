@@ -29,6 +29,40 @@ const slugify = (s) =>
 
 const pad = (n) => String(n ?? 0).padStart(2, '0');
 
+// --- debug overlay -----------------------------------------------------------
+// Captures every error + key flow step and prints them on-screen so failures
+// are visible without devtools. Auto-shown on the first message.
+
+const debugLines = [];
+const debugBox = document.createElement('pre');
+debugBox.className = 'debug-log';
+debugBox.hidden = true;
+debugBox.setAttribute('aria-hidden', 'true');
+document.body.appendChild(debugBox);
+
+function debug(...parts) {
+	const line = `[${new Date().toLocaleTimeString()}] ${parts
+		.map((p) => {
+			try {
+				return typeof p === 'string' ? p : JSON.stringify(p);
+			} catch {
+				return String(p);
+			}
+		})
+		.join(' ')}`;
+	debugLines.push(line);
+	debugBox.hidden = false;
+	debugBox.textContent = debugLines.join('\n');
+	console.log('[editor]', ...parts);
+}
+
+window.addEventListener('error', (e) =>
+	debug('window error:', e.message, `${e.filename}:${e.lineno}:${e.colno}`),
+);
+window.addEventListener('unhandledrejection', (e) =>
+	debug('unhandled rejection:', String(e.reason?.stack || e.reason)),
+);
+
 // Markdown helpers toolbar for the chapter content editor: each button
 // inserts a snippet at the caret (wrapping the selection when there is one).
 const MD_TOOLBAR = [
@@ -1263,6 +1297,7 @@ function showInitError(message) {
 }
 
 async function enterEditor() {
+	debug('enterEditor: showing shell');
 	$('#start-screen').hidden = true;
 	$('#init-modal').hidden = true;
 	$('#ed-header').hidden = false;
@@ -1271,29 +1306,24 @@ async function enterEditor() {
 	state.expanded.clear();
 	try {
 		await refresh();
+		debug('enterEditor: refresh ok — editor is up');
 	} catch (err) {
+		debug('enterEditor: refresh FAILED:', err.stack || err.message);
 		toast(err.message, 'err', 8000);
 	}
 }
 
 $('#btn-open-project').addEventListener('click', async () => {
 	$('#start-error').hidden = true;
+	debug('open: clicked, calling picker');
 	try {
 		const handle = await fsa.pickRoot();
+		debug('open: picked folder:', handle?.name);
 		await store.open(handle);
+		debug('open: store.open ok');
 		await enterEditor();
 	} catch (err) {
-		if (err?.name !== 'AbortError') showStartError(err.message);
-	}
-});
-
-$('#btn-continue').addEventListener('click', async () => {
-	$('#start-error').hidden = true;
-	try {
-		const ok = await store.restoreWithPrompt();
-		if (!ok) throw new Error('Could not re-open that folder.');
-		await enterEditor();
-	} catch (err) {
+		debug('open: FAILED:', err.name, err.stack || err.message);
 		if (err?.name !== 'AbortError') showStartError(err.message);
 	}
 });
@@ -1310,14 +1340,18 @@ $('#btn-create-project').addEventListener('click', () => {
 	$('#init-folder-name').textContent = '';
 	$('#init-title').value = '';
 	$('#init-modal').hidden = false;
+	debug('create: modal opened');
 });
 
 $('#init-pick-folder').addEventListener('click', async () => {
 	$('#init-error').hidden = true;
+	debug('create: calling picker');
 	try {
 		initHandle = await fsa.pickRoot();
+		debug('create: picked folder:', initHandle?.name);
 		$('#init-folder-name').textContent = initHandle.name;
 	} catch (err) {
+		debug('create: pick FAILED:', err.name, err.message);
 		if (err?.name !== 'AbortError') showInitError(err.message);
 	}
 });
@@ -1336,6 +1370,7 @@ for (const btn of document.querySelectorAll('.preset')) {
 $('#init-go').addEventListener('click', async () => {
 	$('#init-error').hidden = true;
 	const title = $('#init-title').value.trim();
+	debug('create: go clicked, handle:', initHandle?.name, 'title:', title, 'preset:', initPreset);
 	if (!initHandle) {
 		showInitError('Choose a folder first.');
 		return;
@@ -1347,32 +1382,44 @@ $('#init-go').addEventListener('click', async () => {
 	try {
 		store.setPicked(initHandle);
 		await api('initialize', { preset: initPreset, title });
+		debug('create: initialize ok');
 		toast(`Project created — ${initPreset} preset.`, 'ok');
 		await enterEditor();
 	} catch (err) {
+		debug('create: FAILED:', err.name, err.stack || err.message);
 		showInitError(err.message);
 	}
 });
 
 $('#btn-close-folder').addEventListener('click', async () => {
 	await store.close();
-	await refreshStart();
 	showStart();
 });
-
-/** Show the “Continue with <folder>” button when a saved handle exists. */
-async function refreshStart() {
-	const saved = await fsa.loadRootHandle().catch(() => null);
-	const btn = $('#btn-continue');
-	btn.hidden = !saved;
-	if (saved) btn.textContent = `Continue with “${saved.name}”`;
-}
 
 // ---------------------------------------------------------------------------
 // boot
 // ---------------------------------------------------------------------------
 
 (async () => {
-	await refreshStart();
+	// No Continue button: if the saved folder still has permission, go straight
+	// in. Otherwise show the start screen — Open/Create handle the rest.
+	const saved = await fsa.loadRootHandle().catch((err) => {
+		debug('boot: loadRootHandle FAILED:', err.message);
+		return null;
+	});
+	debug('boot: saved handle:', saved?.name ?? 'none');
+	if (saved && (await saved.queryPermission({ mode: 'readwrite' })) === 'granted') {
+		debug('boot: permission granted, auto-opening');
+		try {
+			const ok = await store.restore();
+			debug('boot: store.restore →', ok);
+			if (ok) {
+				await enterEditor();
+				return;
+			}
+		} catch (err) {
+			debug('boot: auto-open FAILED:', err.stack || err.message);
+		}
+	}
 	showStart();
 })();

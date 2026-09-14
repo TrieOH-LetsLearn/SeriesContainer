@@ -914,6 +914,24 @@ textarea {
 	min-height: 1em;
 }
 
+.debug-log {
+	position: fixed;
+	left: 0.75rem;
+	bottom: 0.75rem;
+	z-index: 100;
+	max-width: 60vw;
+	max-height: 40vh;
+	overflow: auto;
+	margin: 0;
+	padding: 0.75rem 1rem;
+	background: #111;
+	color: #7ef29a;
+	font: 12px/1.5 ui-monospace, monospace;
+	border-radius: 8px;
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+	white-space: pre-wrap;
+}
+
 /* ---------------------------------------------------------------------------
    Markdown preview pane (replaces the live-site iframe: the editor is static)
    --------------------------------------------------------------------------- */
