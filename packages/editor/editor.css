@@ -993,6 +993,30 @@ textarea {
 	padding: 0;
 }
 
+.md-preview table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 1.5rem 0;
+	font-size: 0.92rem;
+}
+
+.md-preview th,
+.md-preview td {
+	border: 1px solid var(--border);
+	padding: 0.5rem 0.75rem;
+	text-align: left;
+	vertical-align: top;
+}
+
+.md-preview thead th {
+	background: var(--surface);
+	font-weight: 650;
+}
+
+.md-preview tbody tr:nth-child(even) {
+	background: rgba(255, 255, 255, 0.02);
+}
+
 .md-preview blockquote {
 	margin: 0.75em 0;
 	padding: 0.25em 1em;

@@ -639,6 +639,36 @@ main.read {
 	margin: 0 0 1.1rem;
 }
 
+.prose table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 1.5rem 0;
+	font-size: 0.92rem;
+}
+
+.prose th,
+.prose td {
+	border: 1px solid var(--border);
+	padding: 0.5rem 0.75rem;
+	text-align: left;
+	vertical-align: top;
+}
+
+.prose thead th {
+	background: var(--surface);
+	font-weight: 650;
+}
+
+.prose tbody tr:nth-child(even) {
+	background: rgba(255, 255, 255, 0.02);
+}
+
+.prose caption {
+	color: var(--text-faint);
+	caption-side: bottom;
+	padding-top: 0.4rem;
+}
+
 .prose strong {
 	color: var(--text);
 	font-weight: 650;
