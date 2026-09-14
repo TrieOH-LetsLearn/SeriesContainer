@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>SeriesContainer editor</title>
+		<link rel="stylesheet" href="./editor.css" />
+	</head>
+	<body>
+		<!-- Start screen: shown until a content folder is open. -->
+		<div id="start-screen" class="start" hidden>
+			<div class="start__card">
+				<div class="start__logo">✎</div>
+				<h1>SeriesContainer editor</h1>
+				<p class="start__lede">
+					Author your content as plain markdown — the files stay on your disk,
+					in your repo. The renderer turns them into a static site.
+				</p>
+
+				<div class="start__actions">
+					<button id="btn-open-folder" class="btn btn--primary btn--big" type="button">
+						Open a content folder…
+					</button>
+					<button id="btn-init-project" class="btn btn--big" type="button">
+						Initialize a project…
+					</button>
+				</div>
+
+				<p class="start__hint">
+					Initializing scaffolds <code>content/</code> into the folder you pick,
+					with either the <strong>Hub</strong> preset (a catalog of series) or
+					the <strong>Book</strong> preset (one series, no hub).
+				</p>
+				<p id="start-error" class="start__error" hidden></p>
+				<p class="start__note">
+					Uses the File System Access API — Chrome, Edge or Opera. Your last
+					folder is remembered and re-opened when permission is granted again.
+				</p>
+			</div>
+		</div>
+
+		<!-- Init modal: pick the preset before scaffolding. -->
+		<div id="init-modal" class="modal" hidden>
+			<div class="modal__card">
+				<h2>Initialize a project</h2>
+				<p class="modal__lede">
+					Pick a folder on your PC, then choose what this site will be.
+					Everything is created as markdown inside <code>content/</code>.
+				</p>
+
+				<div class="field">
+					<label for="init-title">Site title</label>
+					<input id="init-title" type="text" placeholder="Lets Learn" value="" />
+				</div>
+
+				<div class="preset-grid">
+					<button type="button" class="preset preset--hub is-selected" data-preset="hub">
+						<span class="preset__icon" aria-hidden="true">🗺️</span>
+						<span class="preset__name">Hub preset</span>
+						<span class="preset__desc">
+							A catalog of series. Hub home + any number of series, each with
+							books and chapters. <code>home/home.md · projects/&lt;slug&gt;/…</code>
+						</span>
+					</button>
+					<button type="button" class="preset preset--book" data-preset="book">
+						<span class="preset__icon" aria-hidden="true">📖</span>
+						<span class="preset__name">Book preset</span>
+						<span class="preset__desc">
+							One series, no hub. The site <em>is</em> the series: a home page
+							and its books.
+							<code>home.md · books/&lt;book&gt;/…</code>
+						</span>
+					</button>
+				</div>
+
+				<div class="modal__actions">
+					<button id="init-cancel" class="btn" type="button">Cancel</button>
+					<button id="init-go" class="btn btn--primary" type="button">
+						Choose folder &amp; create…
+					</button>
+				</div>
+				<p id="init-error" class="start__error" hidden></p>
+			</div>
+		</div>
+
+		<!-- Editor shell (hidden until a folder is open). -->
+		<header class="ed-header" hidden id="ed-header">
+			<div class="ed-header__brand">
+				<span class="ed-logo" aria-hidden="true">✎</span>
+				<span>SeriesContainer</span>
+				<span class="ed-header__tag">editing <code id="folder-label"></code></span>
+			</div>
+			<div class="ed-header__actions">
+				<button id="btn-close-folder" class="btn btn--ghost" type="button" title="Forget this folder and return to the start screen">
+					Close folder
+				</button>
+			</div>
+		</header>
+
+		<div class="ed-shell" hidden id="ed-shell">
+			<aside class="ed-list" aria-label="Content">
+				<div class="ed-list__head">
+					<span id="tree-title">Hub + series</span>
+					<button id="btn-new-project" class="btn btn--small btn--primary" type="button">
+						＋ New series
+					</button>
+				</div>
+				<ul id="tree" class="tree"></ul>
+			</aside>
+
+			<main id="form-pane" class="ed-form" aria-label="Editor"></main>
+
+			<section class="ed-preview" aria-label="Preview">
+				<div class="ed-preview__bar">
+					<span class="ed-preview__label">Markdown preview</span>
+					<button id="btn-reload-preview" class="btn btn--small btn--ghost" type="button" title="Re-render the preview">
+						⟳
+					</button>
+				</div>
+				<div id="preview-frame" class="md-preview"></div>
+			</section>
+		</div>
+
+		<div id="toasts" class="toasts" aria-live="polite"></div>
+
+		<script type="module" src="./editor.js"></script>
+	</body>
+</html>

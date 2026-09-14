@@ -1,46 +1,58 @@
 # CONTEXT — SeriesContainer
 
-The domain model for the **Lets Learn container**: one Astro repo holding
-the main home (hub) and every series' site, authored as files under
-`content/` and built to pure static HTML. `src/` holds the reader code;
-`src/content.config.ts` defines the content schema.
+One idea — *learning content as plain markdown folders* — with two tools
+around it:
+
+- **Renderer** (`packages/renderer`, CLI `series-container`): reads a
+  `content/` folder from anywhere and emits a pure static site.
+- **Editor** (`packages/editor`): a static web app. The author picks a
+  folder on their PC (File System Access API) and edits the markdown
+  through a UI; there is no server and no database.
+
+The root `content/` folder is the Lets Learn site itself (hub preset) and
+doubles as the renderer's reference content.
 
 ## Terms
 
-- **Hub (main home)** — the catalog site at `/` (`content/home/home.md`):
-  hub title/tagline/description/footer and body copy rendered under the grid
-  of series cards. It lists only `live`/`launching` series; each card links
-  to that series' absolute deploy URL.
-- **Series (project)** — one course, a folder `content/projects/<slug>/`.
-  Its `home.md` is the single source for BOTH the series' landing page and
-  its card on the hub: `title`, `tagline`, `description`, `url` (deploy
-  location — prompted when creating a series, editable any time), `status`
-  (`draft | launching | live | archived`), `order`, `icon` (emoji),
-  `footer`, `backLabel`, `links[]`. Folder name is the URL slug.
-- **Book** — one volume, a folder `content/projects/<slug>/books/<book>/`
-  where `<book>` = `book-<order>-<topic>`. Inside: `book.md` (frontmatter
-  `title`, `shortTitle`, `order`, `status` and the intro body) and its
-  `chapters/` folder. Renaming/re-slugging/reordering a book renames the
-  folder, moving its chapters with it.
-- **Chapter** — one lesson: `chapters/<NN>-<topic>.md` inside its book.
-  Frontmatter `order`, `title`; body is markdown. Lives inside its book, so
-  the old name-linking between separate folders no longer exists.
-- **Reading sequence** — per series: every chapter across the series' books
-  in reading order (book `order`, then chapter `order`), with book pages as
-  boundary items in prev/next nav. Implemented by `src/lib/platform.ts`, the
-  single derivation for hub + series selectors, URLs, and counts.
+- **Content folder** — a directory of markdown + frontmatter. The editor
+  opens it (descending into `content/` if the picked folder has one); the
+  renderer points at it with `--content`. Two presets, auto-detected by
+  which files exist.
+- **Hub preset** — a catalog of series (the Lets Learn shape):
+  `home/home.md` + `projects/<slug>/…`. The hub lists `live`/`launching`
+  series; each card links to that series' deploy URL or into the build.
+- **Book preset** — one series, no hub: `home.md` + `books/<book>/…`.
+  The site IS the series: `/` is the series home, `/books/…` the content.
+- **Series (project)** — hub preset only: folder `projects/<slug>/`. Its
+  `home.md` is the single source for BOTH the series landing page and its
+  hub card (`title`, `tagline`, `description`, `url`, `status`, `order`,
+  `icon`, `footer`, `backLabel`, `links[]`). Folder name = URL slug.
+- **Book** — folder `books/<book>/` where `<book>` = `book-<order>-<topic>`,
+  inside its series (hub) or the content root (book preset). `book.md`
+  holds `title`, `shortTitle`, `order`, `status` + intro body.
+- **Chapter** — `chapters/<NN>-<topic>.md` inside its book. Frontmatter
+  `order`, `title`; body is markdown. A chapter's book is its parent folder.
+- **Reading sequence** — every chapter in reading order (book `order`, then
+  chapter `order`), with book pages as boundary items in prev/next nav.
+  Implemented in `packages/renderer/src/lib/platform.ts` (hub mode) and by
+  the `books/…` routes (book mode).
 - **CodeReveal** — reference code hidden behind a toggle with a copy button.
   Default: only the last code block in a chapter is hidden; `keep`/`reveal`
   fence info strings override per block. Implemented by
-  `src/lib/code-reveal-plugin.mjs` and styled in `src/styles/global.css`.
-- **Editorial mode** — the authoring side, served by the dev server only
-  (`npm run dev` / `npm run editorial`). A Vite plugin in `editor/` mounts
-  the editor UI at `/editor` and a file API under `/_editor/api/*` that
-  reads/writes `content/` on disk. Viewer builds never include it.
-- **Viewer mode** — the shipped site: `astro build` renders the hub + every
-  series at `/` and `/<slug>/…` as pure static pages. Per-series deploys are
-  separate (absolute URLs in the catalog; Cloudflare micro-fronts map them).
+  `packages/renderer/src/lib/code-reveal-plugin.mjs`.
 - **Naming rules (editor-enforced)** — book folder `book-<order>-<topic>`,
   chapter file `<NN>-<topic>.md` with `NN` = zero-padded order. The editor
   keeps disk names and frontmatter consistent on every create/rename/
-  reorder/delete and on project creation/deletion.
+  reorder/delete; renaming a book renames its folder (File System Access
+  has no rename, so the editor copies + deletes).
+
+## Invariants
+
+- Content is files on disk, always hand-editable, always diffable. No tool
+  owns the format; both presets are detected from the file tree, so content
+  folders can move between repos unchanged.
+- The renderer never writes; the editor never builds. Deploying is always
+  `series-container build` in CI (the deploy workflow builds the root
+  content with base `/learn`).
+- The editor persists only the folder handle (IndexedDB) — content itself
+  never leaves the author's disk except through their own git push.

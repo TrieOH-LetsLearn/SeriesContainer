@@ -44,7 +44,7 @@ jobs:
         run: npm ci
 
       - name: Build (base /learn)
-        run: ASTRO_BASE=/learn npm run build
+        run: npm run site:build
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

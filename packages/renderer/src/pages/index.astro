@@ -1,0 +1,112 @@
+---
+// The site's front door. Two presets, auto-detected from the content folder:
+//  - hub:  the catalog home (hero + grid of series cards)
+//  - book: the series home (one series, no hub — content root has home.md + books/)
+import { render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import {
+	getSiteMode,
+	getHub,
+	getPublicProjects,
+	getSeriesHome,
+	getDirectBooks,
+	getDirectChaptersInBook,
+	siteHref,
+} from '../lib/platform';
+
+const mode = await getSiteMode();
+
+// --- Hub preset data --------------------------------------------------------
+const hub = mode === 'hub' ? await getHub() : undefined;
+const projects = mode === 'hub' ? await getPublicProjects() : [];
+const hubTitle = hub?.data.title ?? 'Lets Learn';
+const { Content: HubContent } = hub ? await render(hub) : { Content: undefined };
+
+// --- Book preset data -------------------------------------------------------
+const home = mode === 'book' ? await getSeriesHome() : undefined;
+const books = mode === 'book' ? await getDirectBooks() : [];
+let chapterTotal = 0;
+let startHref: string | null = null;
+for (const book of books) {
+	const chapters = await getDirectChaptersInBook(book.id);
+	chapterTotal += chapters.length;
+	if (!startHref && chapters[0]) startHref = `/books/${book.id}/chapters/${chapters[0].id.split('/')[1]}/`;
+}
+const bookTitle = home?.data.title ?? 'Series';
+const { Content: HomeContent } = home ? await render(home) : { Content: undefined };
+const root = siteHref('/');
+---
+
+{
+	mode === 'book' ? (
+		<Base
+			title={bookTitle}
+			description={home?.data.description}
+			brand={home?.data.icon ? `${home.data.icon} ${bookTitle}` : bookTitle}
+			brandHref={root}
+			footerText={home?.data.footer ?? bookTitle}
+			footerLinks={(home?.data.links ?? []).map((l) => ({ label: l.label, href: l.url }))}
+			nav={[
+				{ label: 'Home', href: root, exact: true },
+				{ label: 'Books', href: `${root}books` },
+			]}
+		>
+			<section class="home-hero">
+				<h1>{bookTitle}</h1>
+				{home?.data.tagline && <p class="tagline">{home.data.tagline}</p>}
+				<div class="home-cta">
+					<a class="btn btn--primary" href={startHref ?? `${root}books/`}>
+						Start reading
+					</a>
+					<a class="btn" href={`${root}books/`}>Browse the books</a>
+				</div>
+				<p class="home-stats">
+					<span>{books.length} {books.length === 1 ? 'book' : 'books'}</span>
+					<span aria-hidden="true">·</span>
+					<span>{chapterTotal} {chapterTotal === 1 ? 'chapter' : 'chapters'}</span>
+				</p>
+			</section>
+
+			{HomeContent && (
+				<section class="home-about prose">
+					<HomeContent />
+				</section>
+			)}
+		</Base>
+	) : (
+		<Base
+			title={hubTitle}
+			description={hub?.data.description ?? ''}
+			brand={hubTitle}
+			footerText={hub?.data.footer ?? `${hubTitle} by TrieOH`}
+		>
+			<section class="home-hero hub-hero">
+				<h1>{hubTitle}</h1>
+				{hub?.data.tagline && <p class="tagline">{hub.data.tagline}</p>}
+			</section>
+
+			{
+				projects.length > 0 ? (
+					<section aria-label="Series">
+						<h2 class="section-kicker">Series</h2>
+						<div class="project-grid">
+							{projects.map((project) => <ProjectCard project={project} />)}
+						</div>
+					</section>
+				) : (
+					<p class="hub-empty">
+						No public series yet. Series appear here once their status is set to
+						live (or launching) in the editor.
+					</p>
+				)
+			}
+
+			{HubContent && (
+				<section class="home-about prose hub-intro">
+					<HubContent />
+				</section>
+			)}
+		</Base>
+	)
+}

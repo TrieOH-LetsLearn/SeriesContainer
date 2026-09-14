@@ -1,0 +1,10 @@
+{
+	"name": "@series-container/editor",
+	"type": "module",
+	"version": "0.0.1",
+	"description": "Static authoring UI for SeriesContainer content folders (File System Access API — no server needed).",
+	"scripts": {
+		"dev": "npx --yes serve -l 5177 .",
+		"test": "node test/store.test.mjs"
+	}
+}

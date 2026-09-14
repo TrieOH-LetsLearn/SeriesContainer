@@ -1,0 +1,33 @@
+---
+import type { Book } from '../lib/platform';
+import { BOOK_STATUS_LABEL, bookHref, countChapters } from '../lib/platform';
+
+interface Props {
+	/** Series slug (the folder in content/projects), e.g. "ai". */
+	slug: string;
+	book: Book;
+	/** Override the link target (used by the book preset, where books live at /books/<key>). */
+	href?: string;
+	/** Override the chapter count (used by the book preset's direct books). */
+	chapterCount?: number;
+}
+
+const { slug, book, href, chapterCount: chapterCountOverride } = Astro.props;
+const bookKey = book.id.slice(book.id.indexOf('/') + 1);
+const chapterCount = chapterCountOverride ?? (await countChapters(book.id));
+---
+
+<a class="book-card" href={href ?? bookHref(slug, bookKey)}>
+	<div class="book-card__top">
+		<span class="book-card__number">{book.data.shortTitle}</span>
+		<span class={`status status--${book.data.status}`}>
+			{BOOK_STATUS_LABEL[book.data.status]}
+		</span>
+	</div>
+	<div class="book-card__title">{book.data.title}</div>
+	<div class="book-card__meta">
+		{chapterCount > 0
+			? `${chapterCount} ${chapterCount === 1 ? 'chapter' : 'chapters'}`
+			: 'no chapters yet'}
+	</div>
+</a>

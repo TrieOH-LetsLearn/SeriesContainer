@@ -1,0 +1,64 @@
+---
+// Book preset: the books listing at /books/ (the site IS the series).
+import Base from '../../layouts/Base.astro';
+import BookCard from '../../components/BookCard.astro';
+import {
+	getSeriesHome,
+	getDirectBooks,
+	getDirectChaptersInBook,
+	directBookHref,
+	siteHref,
+} from '../../lib/platform';
+
+export async function getStaticPaths() {
+	// Only generates pages when the content folder uses the book preset.
+	const home = await getSeriesHome();
+	if (!home) return [];
+	return [{ params: {} }];
+}
+
+const home = await getSeriesHome();
+const books = home ? await getDirectBooks() : [];
+const chapterCounts = new Map<string, number>();
+for (const book of books) {
+	chapterCounts.set(book.id, (await getDirectChaptersInBook(book.id)).length);
+}
+const title = home?.data.title ?? 'Books';
+const footer = home?.data.footer ?? title;
+---
+
+<Base
+	title={`Books · ${title}`}
+	description={home?.data.description}
+	brand={title}
+	brandHref={siteHref('/')}
+	footerText={footer}
+	footerLinks={[{ label: home?.data.backLabel ?? 'Home', href: siteHref('/') }]}
+	nav={[
+		{ label: 'Home', href: siteHref('/'), exact: true },
+		{ label: 'Books', href: siteHref('/books'), exact: true },
+	]}
+>
+	<header class="book-head">
+		<div class="book-head__number">The curriculum</div>
+		<h1>Books</h1>
+	</header>
+
+	<p class="book-intro">
+		{books.length} {books.length === 1 ? 'book' : 'books'} in this series — each one
+		self-contained, building on the last.
+	</p>
+
+	<section class="books-grid" aria-label="All books">
+		{
+			books.map((book) => (
+				<BookCard
+					slug=""
+					book={book}
+					href={directBookHref(book.id)}
+					chapterCount={chapterCounts.get(book.id)}
+				/>
+			))
+		}
+	</section>
+</Base>

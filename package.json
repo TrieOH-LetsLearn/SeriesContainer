@@ -1,23 +1,26 @@
 {
-  "name": "series-container",
-  "type": "module",
-  "version": "0.0.1",
-  "engines": {
-    "node": ">=22.12.0"
-  },
-  "scripts": {
-    "dev": "astro dev",
-    "editorial": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro"
-  },
-  "dependencies": {
-    "astro": "^7.2.4",
-    "lucide-astro": "^0.556.0",
-    "yaml": "^2.9.0"
-  },
-  "allowScripts": {
-    "esbuild@0.28.2": true
-  }
+	"name": "series-container",
+	"private": true,
+	"type": "module",
+	"version": "0.0.1",
+	"engines": {
+		"node": ">=22.12.0"
+	},
+	"workspaces": [
+		"packages/renderer",
+		"packages/editor"
+	],
+	"scripts": {
+		"site:dev": "npm run dev --workspace @series-container/renderer -- --content ../../content",
+		"site:build": "npm run build --workspace @series-container/renderer -- --content ../../content",
+		"site:preview": "npm run preview --workspace @series-container/renderer -- --content ../../content",
+		"editor:dev": "npm run dev --workspace @series-container/editor",
+		"test": "npm run test --workspace @series-container/editor"
+	},
+	"allowScripts": {
+		"esbuild@0.28.2": true
+	},
+	"devDependencies": {
+		"marked": "^18.0.13"
+	}
 }

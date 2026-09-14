@@ -1,0 +1,145 @@
+---
+// Book preset: one book's page at /books/<book>/ (the site IS the series).
+import { render } from 'astro:content';
+import { ArrowRight, ChevronRight, Dot } from 'lucide-astro';
+import Base from '../../../layouts/Base.astro';
+import {
+	BOOK_STATUS_LABEL,
+	directBookHref,
+	directChapterHref,
+	getDirectBook,
+	getDirectBooks,
+	getDirectChaptersInBook,
+	getSeriesHome,
+	siteHref,
+} from '../../../lib/platform';
+
+export async function getStaticPaths() {
+	// Only generates pages when the content folder uses the book preset.
+	const home = await getSeriesHome();
+	if (!home) return [];
+	const out = [];
+	for (const book of await getDirectBooks()) {
+		out.push({ params: { book: book.id } });
+	}
+	return out;
+}
+
+const { book: bookKey = '' } = Astro.params;
+const home = await getSeriesHome();
+const book = await getDirectBook(bookKey);
+
+const books = await getDirectBooks();
+const idx = book ? books.findIndex((b) => b.id === book.id) : -1;
+const prev = idx > 0 ? books[idx - 1] : undefined;
+const next = idx >= 0 && idx < books.length - 1 ? books[idx + 1] : undefined;
+const chapters = bookKey ? await getDirectChaptersInBook(bookKey) : [];
+const startHref = chapters[0] ? directChapterHref(bookKey, chapters[0].id.split('/')[1]) : null;
+const { Content } = book ? await render(book) : { Content: undefined };
+
+const title = home?.data.title ?? 'Book';
+const footer = home?.data.footer ?? title;
+const backLabel = home?.data.backLabel ?? 'Home';
+const root = siteHref('/');
+---
+
+<Base
+	title={book ? `${book.data.shortTitle} · ${book.data.title}` : 'Not found'}
+	description={home?.data.description}
+	brand={title}
+	brandHref={root}
+	read
+	footerText={footer}
+	footerLinks={[{ label: backLabel, href: root }]}
+	nav={[
+		{ label: 'Home', href: root, exact: true },
+		{ label: 'Books', href: siteHref('/books') },
+	]}
+>
+	{book && Content ? (
+		<>
+			<nav class="breadcrumbs" aria-label="Breadcrumb">
+				<a href={root}>Home</a> / <a href={siteHref('/books')}>Books</a> / {book.data.title}
+			</nav>
+
+			<header class="book-head">
+				<div class="book-head__number">{book.data.shortTitle}</div>
+				<h1>{book.data.title}</h1>
+				<div class="meta-line">
+					<span class={`status status--${book.data.status}`}>
+						{BOOK_STATUS_LABEL[book.data.status]}
+					</span>
+					<span class="count">
+						{chapters.length} {chapters.length === 1 ? 'chapter' : 'chapters'}
+					</span>
+				</div>
+			</header>
+
+			<div class="book-intro prose"><Content /></div>
+
+			<section class="chapter-list">
+				{
+					startHref && (
+						<a class="btn btn--primary btn--block" href={startHref}>
+							<span>Start reading this book</span>
+							<ArrowRight size={18} stroke-width={2.5} aria-hidden="true" />
+						</a>
+					)
+				}
+				<h2>Chapters</h2>
+				{chapters.length ? (
+					<ol class="chapters">
+						{chapters.map((chapter) => {
+							const name = chapter.id.split('/')[1];
+							return (
+								<li class="linked">
+									<span class="idx">
+										{String(chapter.data.order).padStart(2, '0')}
+									</span>
+									<a class="name" href={directChapterHref(bookKey, name)}>
+										{chapter.data.title}
+									</a>
+									<ChevronRight
+										size={18}
+										stroke-width={2.5}
+										class="chevron"
+										aria-hidden="true"
+									/>
+								</li>
+							);
+						})}
+					</ol>
+				) : (
+					<p class="chapters-empty">
+						No chapters written yet. This book is still in planning.
+					</p>
+				)}
+			</section>
+
+			<nav class="book-nav" aria-label="Book navigation">
+				{prev && (
+					<a href={directBookHref(prev.id)}>
+						<span class="label">Previous</span>
+						<span class="title">
+							{prev.data.shortTitle}
+							<Dot size={14} aria-hidden="true" />
+							{prev.data.title}
+						</span>
+					</a>
+				)}
+				{next && (
+					<a class="next" href={directBookHref(next.id)}>
+						<span class="label">Next</span>
+						<span class="title">
+							{next.data.shortTitle}
+							<Dot size={14} aria-hidden="true" />
+							{next.data.title}
+						</span>
+					</a>
+				)}
+			</nav>
+		</>
+	) : (
+		<p>Not found.</p>
+	)}
+</Base>

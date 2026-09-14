@@ -1,0 +1,28 @@
+{
+	"name": "@series-container/renderer",
+	"type": "module",
+	"version": "0.0.1",
+	"description": "Turns a folder of markdown (SeriesContainer content) into a static hub/series/book site.",
+	"bin": {
+		"series-container": "./cli.mjs"
+	},
+	"files": [
+		"cli.mjs",
+		"astro.config.mjs",
+		"src"
+	],
+	"engines": {
+		"node": ">=22.12.0"
+	},
+	"scripts": {
+		"dev": "node cli.mjs dev",
+		"build": "node cli.mjs build",
+		"preview": "node cli.mjs preview"
+	},
+	"dependencies": {
+		"@astrojs/markdown-satteri": "*",
+		"astro": "^7.2.4",
+		"lucide-astro": "^0.556.0",
+		"yaml": "^2.9.0"
+	}
+}
