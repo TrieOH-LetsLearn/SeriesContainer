@@ -823,9 +823,10 @@ textarea {
 	padding: 2rem;
 }
 
-/* The hidden attribute must win over display:flex above. */
-.modal[hidden] {
-	display: none;
+/* The hidden attribute must always win, even over author display rules
+   (.start, .modal, .ed-header, .ed-shell all set display). */
+[hidden] {
+	display: none !important;
 }
 
 .modal__card {
