@@ -948,8 +948,11 @@ async function loadAssetUrl(path) {
 	if (importedAssets.has(path)) return importedAssets.get(path);
 	if (diskAssets.has(path)) return diskAssets.get(path);
 	try {
-		const { data } = await api('asset/read', { name: path.replace(/^\/assets\//, '') });
-		const url = URL.createObjectURL(new Blob([data]));
+		// api() resolves to { ok, data } where data = { name, data: bytes }.
+		const res = await api('asset/read', { name: path.replace(/^\/assets\//, '') });
+		const bytes = res.data?.data;
+		if (!bytes) return null;
+		const url = URL.createObjectURL(new Blob([bytes]));
 		diskAssets.set(path, url);
 		return url;
 	} catch {
@@ -1029,7 +1032,6 @@ function buildSpoiler(src, alt) {
 	const img = document.createElement('img');
 	img.src = src;
 	img.alt = alt ?? '';
-	img.loading = 'lazy';
 	img.decoding = 'async';
 	body.appendChild(img);
 	details.append(summary, body);

@@ -830,6 +830,15 @@ main.read {
 
 /* Heavy blur; the slight zoom keeps blurred transparency from bleeding in
    at the edges, so nothing recognizable survives at the borders. */
+/* Chrome 131+ hides closed-<details> content via ::details-content
+   (content-visibility: hidden). The spoiler design shows the blurred image
+   behind the pill, so expose it again. */
+.spoiler-image::details-content {
+	display: block;
+	/* The UA sheet hides closed-details content with !important. */
+	content-visibility: visible !important;
+}
+
 .spoiler-image:not([open]) .spoiler-image__body img {
 	filter: blur(32px) saturate(1.4) brightness(0.92);
 	transform: scale(1.15);

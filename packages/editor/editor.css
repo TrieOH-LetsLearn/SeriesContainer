@@ -1053,6 +1053,15 @@ textarea {
 }
 
 /* Closed spoiler: heavy blur + slight zoom, like the site. */
+/* Chrome 131+ hides closed-<details> content via ::details-content
+   (content-visibility: hidden). The spoiler design shows the blurred image
+   behind the pill, so expose it again. */
+.md-preview .spoiler-image::details-content {
+	display: block;
+	/* The UA sheet hides closed-details content with !important. */
+	content-visibility: visible !important;
+}
+
 .md-preview .spoiler-image:not([open]) .spoiler-image__body img {
 	filter: blur(32px) saturate(1.4) brightness(0.92);
 	transform: scale(1.15);
