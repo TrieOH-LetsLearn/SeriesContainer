@@ -1298,15 +1298,28 @@ $('#btn-continue').addEventListener('click', async () => {
 	}
 });
 
-// — Initialize a project —
+// — Create a project —
 
 let initPreset = 'hub';
+let initHandle = null; // folder picked inside the modal, by its own step
 
 $('#btn-create-project').addEventListener('click', () => {
 	$('#start-error').hidden = true;
 	$('#init-error').hidden = true;
+	initHandle = null;
+	$('#init-folder-name').textContent = '';
+	$('#init-title').value = '';
 	$('#init-modal').hidden = false;
-	$('#init-title').focus();
+});
+
+$('#init-pick-folder').addEventListener('click', async () => {
+	$('#init-error').hidden = true;
+	try {
+		initHandle = await fsa.pickRoot();
+		$('#init-folder-name').textContent = initHandle.name;
+	} catch (err) {
+		if (err?.name !== 'AbortError') showInitError(err.message);
+	}
 });
 
 $('#init-cancel').addEventListener('click', () => {
@@ -1323,18 +1336,20 @@ for (const btn of document.querySelectorAll('.preset')) {
 $('#init-go').addEventListener('click', async () => {
 	$('#init-error').hidden = true;
 	const title = $('#init-title').value.trim();
+	if (!initHandle) {
+		showInitError('Choose a folder first.');
+		return;
+	}
 	if (!title) {
 		showInitError('Give your site a title first.');
 		return;
 	}
 	try {
-		const handle = await fsa.pickRoot();
-		store.setPicked(handle);
+		store.setPicked(initHandle);
 		await api('initialize', { preset: initPreset, title });
 		toast(`Project created — ${initPreset} preset.`, 'ok');
 		await enterEditor();
 	} catch (err) {
-		if (err?.name === 'AbortError') return; // folder picker cancelled
 		showInitError(err.message);
 	}
 });

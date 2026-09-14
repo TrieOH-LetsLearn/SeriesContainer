@@ -46,11 +46,20 @@
 		<!-- Init modal: pick the preset before scaffolding. -->
 		<div id="init-modal" class="modal" hidden>
 			<div class="modal__card">
-				<h2>Initialize a project</h2>
+				<h2>Create a project</h2>
 				<p class="modal__lede">
-					Pick a folder on your PC, then choose what this site will be.
-					Everything is created as markdown inside <code>content/</code>.
+					Pick a folder, describe the site, then create. Everything is
+					generated as markdown inside <code>content/</code>.
 				</p>
+
+				<div class="field">
+					<label>Folder</label>
+					<div class="modal__folder-row">
+						<button id="init-pick-folder" class="btn" type="button">Choose folder…</button>
+						<span id="init-folder-name" class="modal__folder-name"></span>
+					</div>
+					<p class="form-note">The scaffolding lands in <code>&lt;folder&gt;/content/</code>.</p>
+				</div>
 
 				<div class="field">
 					<label for="init-title">Site title</label>
@@ -80,7 +89,7 @@
 				<div class="modal__actions">
 					<button id="init-cancel" class="btn" type="button">Cancel</button>
 					<button id="init-go" class="btn btn--primary" type="button">
-						Choose folder &amp; create…
+						Create project
 					</button>
 				</div>
 				<p id="init-error" class="start__error" hidden></p>
