@@ -698,6 +698,12 @@ main.read {
 	color: var(--text);
 }
 
+.prose img {
+	max-width: 100%;
+	height: auto;
+	border-radius: var(--radius);
+}
+
 /* -------------------------- code reveal -------------------------- */
 
 .code-reveal {
@@ -795,6 +801,107 @@ main.read {
 	border-top: 1px solid var(--border-soft);
 	border-radius: 0;
 	background: var(--bg-raised);
+}
+
+/* ------------------------- spoiler image ------------------------- */
+/* Rendered by the spoiler-image markdown plugin: `!sp[alt](/assets/x.png)`.
+   A <details> toggle: closed = heavy blur + centered "Show" pill with a
+   crossed eye; open = clear image with a small "Hide" chip bottom-right. */
+
+.spoiler-image {
+	position: relative;
+	display: block;
+	margin: 1.5rem 0;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--bg-raised);
+	overflow: hidden;
+}
+
+.spoiler-image__body img {
+	display: block;
+	width: 100%;
+	height: auto;
+	margin: 0;
+	border: 0;
+	border-radius: 0;
+	transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+/* Heavy blur; the slight zoom keeps blurred transparency from bleeding in
+   at the edges, so nothing recognizable survives at the borders. */
+.spoiler-image:not([open]) .spoiler-image__body img {
+	filter: blur(32px) saturate(1.4) brightness(0.92);
+	transform: scale(1.15);
+}
+
+.spoiler-image__toggle {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	list-style: none;
+}
+
+.spoiler-image__toggle::-webkit-details-marker {
+	display: none;
+}
+
+.spoiler-image__toggle:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: -2px;
+}
+
+.spoiler-image__pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.55rem 1.1rem;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	background: rgba(10, 12, 16, 0.72);
+	color: #fff;
+	font-size: 0.88rem;
+	font-weight: 600;
+	backdrop-filter: blur(4px);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.spoiler-image__icon {
+	width: 1.05em;
+	height: 1.05em;
+	flex: none;
+}
+
+.spoiler-image__icon--on,
+.spoiler-image__label--hide {
+	display: none;
+}
+
+/* Revealed: the toggle shrinks to a small "Hide" chip in the corner. */
+.spoiler-image[open] .spoiler-image__toggle {
+	inset: auto 0.6rem 0.6rem auto;
+	justify-content: flex-end;
+}
+
+.spoiler-image[open] .spoiler-image__pill {
+	padding: 0.3rem 0.75rem;
+	font-size: 0.78rem;
+	border-color: var(--border);
+	background: rgba(10, 12, 16, 0.6);
+}
+
+.spoiler-image[open] .spoiler-image__icon--off,
+.spoiler-image[open] .spoiler-image__label--show {
+	display: none;
+}
+
+.spoiler-image[open] .spoiler-image__icon--on,
+.spoiler-image[open] .spoiler-image__label--hide {
+	display: inline;
 }
 
 @media (prefers-reduced-motion: reduce) {

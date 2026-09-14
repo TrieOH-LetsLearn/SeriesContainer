@@ -22,6 +22,9 @@ const PROJECT_STATUSES = ['draft', 'launching', 'live', 'archived'];
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const BOOK_ID_RE = /^book-\d+-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+/** Image extensions the renderer serves from content/assets/. */
+const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg', 'bmp', 'ico'];
+
 // ---------------------------------------------------------------------------
 // state
 // ---------------------------------------------------------------------------
@@ -635,6 +638,44 @@ async function deleteChapter(payload) {
 	return { deleted: `${bookId}/${id}` };
 }
 
+/**
+ * Import an image file into the content folder's central assets/ directory.
+ * The name is sanitized (slug stem + lowercase image extension) and made
+ * unique; the op returns the on-disk name and the markdown-reachable path.
+ */
+async function assetImport(payload) {
+	const { name: rawName, data } = payload;
+	if (typeof rawName !== 'string' || !rawName.trim()) {
+		throw new ApiError('Image file name is required.');
+	}
+	if (!(data instanceof ArrayBuffer) && !ArrayBuffer.isView(data)) {
+		throw new ApiError('Image data must be binary.');
+	}
+	const base = rawName.split(/[\\/]/).pop().trim();
+	const extMatch = /\.([a-z0-9]+)$/i.exec(base);
+	const ext = extMatch ? extMatch[1].toLowerCase() : '';
+	if (!IMAGE_EXTS.includes(ext)) {
+		throw new ApiError(
+			`"${base}" is not an image. Supported types: ${IMAGE_EXTS.join(', ')}.`
+		);
+	}
+	const stem =
+		base
+			.slice(0, base.length - extMatch[0].length)
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-+|-+$/g, '')
+			.slice(0, 60) || 'image';
+
+	const dir = await ensureAt(['assets']);
+	let name = `${stem}.${ext}`;
+	for (let i = 2; (await fs.readText(dir, name)) !== null; i++) {
+		name = `${stem}-${i}.${ext}`;
+	}
+	await fs.writeData(dir, name, data instanceof ArrayBuffer ? new Uint8Array(data) : new Uint8Array(data));
+	return { name, path: `/assets/${name}` };
+}
+
 // ---------------------------------------------------------------------------
 // Initialize a project (scaffolding for the two presets)
 // ---------------------------------------------------------------------------
@@ -713,6 +754,7 @@ const OPS = {
 	'book/delete': deleteBook,
 	'chapter/save': saveChapter,
 	'chapter/delete': deleteChapter,
+	'asset/import': assetImport,
 	initialize,
 };
 

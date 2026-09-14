@@ -22,7 +22,13 @@ class MockFile {
 				chunks.push(data);
 			},
 			async close() {
-				await fsp.writeFile(file.path, chunks.join(''), 'utf8');
+				// Text writes are joined as strings; binary (typed array) writes
+				// are concatenated byte-wise so image imports round-trip.
+				const binary = chunks.some((c) => typeof c !== 'string');
+				const out = binary
+					? Buffer.concat(chunks.map((c) => Buffer.from(c)) )
+					: chunks.join('');
+				await fsp.writeFile(file.path, out, binary ? null : 'utf8');
 			},
 		};
 	}

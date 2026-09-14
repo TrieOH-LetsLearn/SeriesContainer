@@ -9,6 +9,10 @@ import { glob } from 'astro/loaders';
  * only the active preset's collections scan the disk, the other preset's
  * collections are silent empties (so both route sets can coexist):
  *
+ * An optional `assets/` directory at the content root holds images (and
+ * other media), referenced from any markdown file as `/assets/<file>` —
+ * see the contentAssets integration in astro.config.mjs.
+ *
  * Hub preset (a catalog of series):
  *
  *   <content>/home/home.md                    →  hub entry, id "home"

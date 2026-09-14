@@ -46,6 +46,10 @@ const MD_TOOLBAR = [
 		{ md: 'quote', label: 'quote', title: 'Blockquote' },
 		{ md: 'hr', label: '——', title: 'Horizontal rule' },
 	]},
+	{ group: 'media', items: [
+		{ md: 'image', label: '🖼 image', title: 'Insert an image from your disk — it is copied into content/assets/ and referenced as /assets/<file>' },
+		{ md: 'spoiler', label: '🖼 spoiler', title: 'Insert a spoiler image — heavily blurred with a Show button until the reader reveals it' },
+	]},
 	{ group: 'code', items: [
 		{ md: 'codeblock', label: '``` code', title: 'Fenced code block' },
 		{ md: 'keep', label: 'Code (visible)', title: 'A code block that always stays visible — use “keep” for example code that would otherwise be treated as the reference' },
@@ -83,12 +87,10 @@ const MD_SNIPPETS = {
 	reveal: { block: true, before: '```py reveal\n', after: '\n```', placeholder: 'your reference answer here' },
 };
 
-/** Insert a snippet at the caret of the #f-body textarea, selecting the placeholder. */
-function mdInsert(key) {
+/** Insert a snippet definition at the caret of the #f-body textarea. */
+function insertSnippet(def) {
 	const ta = document.querySelector('#f-body');
 	if (!ta) return;
-	const def = MD_SNIPPETS[key];
-	if (!def) return;
 	const { selectionStart: start, selectionEnd: end, value: value } = ta;
 	const selected = value.slice(start, end);
 	const inner = selected || def.placeholder;
@@ -110,6 +112,62 @@ function mdInsert(key) {
 	}
 	ta.focus();
 	ta.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function mdInsert(key) {
+	const def = MD_SNIPPETS[key];
+	if (def) insertSnippet(def);
+}
+
+// --- images ----------------------------------------------------------------
+
+// Blob URLs for assets imported this session, used by the live preview
+// (the editor has no server, so /assets/... only resolves for these).
+const importedAssets = new Map();
+let imagePicker = null;
+// The picker input is created once; remember the last clicked mode.
+const spoilerRef = { current: false };
+
+/**
+ * Pick an image from disk, copy it into content/assets/ and insert markdown
+ * for it at the caret. Any selected text becomes the alt text.
+ */
+function insertImage(spoiler) {
+	if (!imagePicker) {
+		imagePicker = document.createElement('input');
+		imagePicker.type = 'file';
+		imagePicker.accept = 'image/*';
+		imagePicker.hidden = true;
+		imagePicker.addEventListener('change', () => onImagePicked(spoilerRef.current));
+		document.body.appendChild(imagePicker);
+	}
+	spoilerRef.current = spoiler;
+	imagePicker.value = '';
+	imagePicker.click();
+}
+
+async function onImagePicked(spoiler) {
+	const file = imagePicker?.files?.[0];
+	if (!file) return;
+	const ta = document.querySelector('#f-body');
+	let alt = ta ? ta.value.slice(ta.selectionStart, ta.selectionEnd).trim() : '';
+	if (!alt) {
+		alt = file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').trim() || 'image';
+	}
+	try {
+		const data = await file.arrayBuffer();
+		const { data: res } = await api('asset/import', { name: file.name, data });
+		importedAssets.set(res.path, URL.createObjectURL(file));
+		insertSnippet({
+			block: true,
+			before: `${spoiler ? '!sp' : ''}[`,
+			after: `](${res.path})`,
+			placeholder: alt,
+		});
+		toast(`Image saved to content${res.path}`, 'ok');
+	} catch (err) {
+		toast(err.message, 'err', 7000);
+	}
 }
 
 const BOOK_STATUS = {
@@ -841,8 +899,14 @@ function schedulePreview() {
 function renderPreview() {
 	const pane = $('#preview-frame');
 	const md = $('#f-body')?.value ?? '';
-	pane.innerHTML = md.trim()
-		? marked.parse(md)
+	// The editor has no server: show spoiler images as plain images and swap
+	// imported assets for their blob URLs so the preview is readable.
+	let previewMd = md.replace(/!sp\[/g, '![');
+	for (const [path, url] of importedAssets) {
+		previewMd = previewMd.split(`](${path})`).join(`](${url})`);
+	}
+	pane.innerHTML = previewMd.trim()
+		? marked.parse(previewMd)
 		: '<p class="md-preview__empty">Nothing to preview yet — start writing markdown on the left.</p>';
 }
 
@@ -1115,7 +1179,9 @@ $('#tree').addEventListener('click', (ev) => {
 $('#form-pane').addEventListener('click', (ev) => {
 	const mdBtn = ev.target.closest('[data-md]');
 	if (mdBtn) {
-		mdInsert(mdBtn.dataset.md);
+		if (mdBtn.dataset.md === 'image') insertImage(false);
+		else if (mdBtn.dataset.md === 'spoiler') insertImage(true);
+		else mdInsert(mdBtn.dataset.md);
 		return;
 	}
 	const btn = ev.target.closest('[data-action]');

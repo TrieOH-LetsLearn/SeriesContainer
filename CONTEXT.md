@@ -40,6 +40,15 @@ doubles as the renderer's reference content.
   Default: only the last code block in a chapter is hidden; `keep`/`reveal`
   fence info strings override per block. Implemented by
   `packages/renderer/src/lib/code-reveal-plugin.mjs`.
+- **Spoiler image** — an image hidden behind a heavy blur with a crossed-eye
+  Show button (click to reveal, click again to hide; zero JS, a `<details>`
+  toggle). Syntax: `!sp[alt](/assets/file.png)` — the `!sp` prefix before a
+  normal image. Plain `![alt](…)` renders the image directly. Images live in
+  the content folder's central `assets/` directory, referenced as
+  `/assets/<file>` (served in dev and copied into builds by the
+  content-assets integration in `astro.config.mjs`; works under the deploy
+  base too). Implemented by
+  `packages/renderer/src/lib/spoiler-image-plugin.mjs`.
 - **Naming rules (editor-enforced)** — book folder `book-<order>-<topic>`,
   chapter file `<NN>-<topic>.md` with `NN` = zero-padded order. The editor
   keeps disk names and frontmatter consistent on every create/rename/

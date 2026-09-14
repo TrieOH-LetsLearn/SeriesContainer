@@ -159,6 +159,42 @@ console.log('Opening an existing folder (mode detection)');
 	ok(cat2.mode === 'book', 'reopening the book project detects book mode');
 }
 
+// ===========================================================================
+console.log('Asset import (images)');
+{
+	const root = path.join(tmpBase, 'asset-project');
+	await fsp.mkdir(root);
+	store.setPicked(new MockDir(root));
+	await call('initialize', { preset: 'book', title: 'A' });
+
+	const bytes = new Uint8Array([137, 80, 78, 71, 1, 2, 3, 4]);
+	const res = await call('asset/import', { name: 'Result Picture.PNG', data: bytes });
+	ok(res.data.path === '/assets/result-picture.png', 'name is slugified with a lowercase extension');
+	ok(res.data.name === 'result-picture.png', 'returns the final file name');
+
+	const onDisk = await fsp.readFile(path.join(root, 'content', 'assets', 'result-picture.png'));
+	ok(Buffer.from(bytes).equals(onDisk), 'bytes round-trip uncorrupted');
+
+	const res2 = await call('asset/import', { name: 'result-picture.png', data: bytes });
+	ok(res2.data.name === 'result-picture-2.png', 'name collisions are uniquified, not overwritten');
+
+	let threw = '';
+	try {
+		await call('asset/import', { name: 'notes.txt', data: bytes });
+	} catch (err) {
+		threw = err.message;
+	}
+	ok(/not an image/.test(threw), 'non-image extensions are rejected');
+
+	threw = '';
+	try {
+		await call('asset/import', { name: 'no-ext', data: bytes });
+	} catch (err) {
+		threw = err.message;
+	}
+	ok(/not an image/.test(threw), 'missing extension is rejected');
+}
+
 await fsp.rm(tmpBase, { recursive: true, force: true });
 console.log(failures === 0 ? '\nAll green.' : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);

@@ -102,6 +102,14 @@ export async function writeText(dir, name, text) {
 	await w.close();
 }
 
+/** Write binary data (BufferSource) — used for imported images. */
+export async function writeData(dir, name, data) {
+	const fh = await dir.getFileHandle(name, { create: true });
+	const w = await fh.createWritable();
+	await w.write(data);
+	await w.close();
+}
+
 export async function removeFile(dir, name) {
 	await dir.removeEntry(name);
 }
