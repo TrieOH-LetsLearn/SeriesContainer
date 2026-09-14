@@ -514,7 +514,6 @@ textarea {
 	flex: 1 1 auto;
 	width: 100%;
 	border: none;
-	background: #fff;
 	min-height: 0;
 }
 
@@ -942,6 +941,7 @@ textarea {
 	overflow: auto;
 	padding: 1.5rem 1.75rem;
 	background: var(--bg-raised);
+	color: var(--text);
 	font-size: 0.95rem;
 	line-height: 1.65;
 }
